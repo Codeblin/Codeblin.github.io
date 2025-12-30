@@ -2,8 +2,8 @@
 // Supabase (Magic Link Sync)
 // =======================
 // Put your values here from Supabase Project Settings → API
-const SUPABASE_URL = "https://YOUR_PROJECT.supabase.co";
-const SUPABASE_ANON_KEY = "YOUR_ANON_PUBLIC_KEY";
+const SUPABASE_URL = "https://paupltihpntfyjmxtjfz.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhdXBsdGlocG50ZnlqbXh0amZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwNTcwNzksImV4cCI6MjA4MjYzMzA3OX0.8H4QO3So4SCOBuP6fQr7aSdIDTSQYVMYwiGeWWdcreo";
 
 // Load Supabase SDK (CDN)
 async function loadSupabase() {
