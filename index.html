@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Car Fund Tracker</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+<header>
+  <div>
+    <h1>Car Fund Tracker</h1>
+    <p>Static, offline-friendly, stored in your browser. Goal: buy a car without going broke.</p>
+  </div>
+  <div class="pill">
+    Today: <b id="today"></b>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="grid">
+
+    <!-- KPIs -->
+    <div class="card span-4">
+      <h2>Car Fund</h2>
+      <div class="kpi">
+        <div>
+          <div class="label">Current</div>
+          <div class="value mono" id="kpiCarFund">€0</div>
+        </div>
+        <div class="pill"><span>Goal</span> <b class="mono" id="kpiGoal">€3,500</b></div>
+      </div>
+      <div class="progressWrap">
+        <div class="bar"><div id="barFill"></div></div>
+        <div class="row" style="margin-top:8px; align-items:center; justify-content:space-between">
+          <div class="small mono" id="kpiProgressText">0%</div>
+          <div class="small mono" id="kpiRemaining">Remaining: €0</div>
+        </div>
+      </div>
+      <div class="hr"></div>
+      <div class="hint">
+        Keep a <b>buffer</b> so you don’t panic. The app separates “car fund” vs “buffer”.
+      </div>
+    </div>
+
+    <div class="card span-4">
+      <h2>Buffer (Safety Money)</h2>
+      <div class="kpi">
+        <div>
+          <div class="label">Current</div>
+          <div class="value mono" id="kpiBuffer">€0</div>
+        </div>
+        <div class="pill"><span>Target</span> <b class="mono" id="kpiBufferTarget">€1,200</b></div>
+      </div>
+      <div class="sub">Rule: don’t touch this unless life happens.</div>
+      <div class="hr"></div>
+      <div class="hint">
+        If buffer is below target, the app will show a warning and your “buy date” will become conservative.
+      </div>
+    </div>
+
+    <div class="card span-4">
+      <h2>Estimated Car-Buy Date</h2>
+      <div class="kpi">
+        <div>
+          <div class="label">Based on last 60 days net savings rate</div>
+          <div class="value mono" id="kpiBuyDate">—</div>
+        </div>
+      </div>
+      <div class="sub mono" id="kpiRate">Rate: €0 / month</div>
+      <div class="hr"></div>
+      <div class="hint">
+        This is a <b>projection</b>. It becomes accurate after you log a few income/expense entries.
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="card span-8">
+      <h2>Setup</h2>
+      <div class="row">
+        <div>
+          <label>Car goal (€)</label>
+          <input id="goal" type="number" min="0" step="1" />
+        </div>
+        <div>
+          <label>Starting savings (€)</label>
+          <input id="startingSavings" type="number" min="0" step="1" />
+        </div>
+        <div>
+          <label>Buffer target (€ / month)</label>
+          <input id="bufferTarget" type="number" min="0" step="1" />
+        </div>
+        <div>
+          <label>Freelance rate (€ / hour)</label>
+          <input id="hourlyRate" type="number" min="0" step="1" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Rent (€ / month)</label>
+          <input id="rent" type="number" min="0" step="1" />
+        </div>
+        <div>
+          <label>Bills (€ / month)</label>
+          <input id="bills" type="number" min="0" step="1" />
+        </div>
+        <div>
+          <label>Food & essentials (€ / month)</label>
+          <input id="food" type="number" min="0" step="1" />
+        </div>
+        <div>
+          <label>Smoking (€ / month)</label>
+          <input id="smoking" type="number" min="0" step="1" />
+        </div>
+        <div>
+          <label>Social / coffee (€ / month)</label>
+          <input id="social" type="number" min="0" step="1" />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="saveSettings">Save setup</button>
+        <button class="ghost" id="resetAll">Reset everything</button>
+        <span class="pill" id="setupStatus">Not saved yet</span>
+      </div>
+      <div class="sub" id="warnings"></div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="card span-4">
+      <h2>Quick Actions</h2>
+
+      <label>Salary deposit (€)</label>
+      <div class="row">
+        <input id="salaryAmount" type="number" min="0" step="1" placeholder="e.g. 1800" />
+        <button id="addSalary">Add</button>
+      </div>
+
+      <label>Pay debt (Aunt) (€)</label>
+      <div class="row">
+        <input id="debtAmount" type="number" min="0" step="1" placeholder="e.g. 314" />
+        <button class="danger" id="payDebt">Pay</button>
+      </div>
+
+      <label>Freelance hours</label>
+      <div class="row">
+        <input id="hours" type="number" min="0" step="0.5" placeholder="e.g. 3.5" />
+        <button id="addHours">Add</button>
+      </div>
+
+      <label>Monthly expenses (auto)</label>
+      <div class="actions">
+        <button id="addMonthly">Add this month’s fixed+life costs</button>
+      </div>
+      <div class="sub">
+        Adds: rent+bills+food+smoking+social as one expense entry, dated today.
+      </div>
+    </div>
+
+    <!-- Add custom entry -->
+    <div class="card span-6">
+      <h2>Add Entry</h2>
+      <div class="row">
+        <div>
+          <label>Type</label>
+          <select id="entryType">
+            <option value="income">Income</option>
+            <option value="expense">Expense</option>
+            <option value="debt">Debt payment</option>
+            <option value="move_to_car">Move money → Car fund</option>
+            <option value="move_to_buffer">Move money → Buffer</option>
+          </select>
+        </div>
+        <div>
+          <label>Amount (€)</label>
+          <input id="entryAmount" type="number" step="1" />
+        </div>
+        <div>
+          <label>Date</label>
+          <input id="entryDate" type="date" />
+        </div>
+      </div>
+
+      <label>Description</label>
+      <input id="entryDesc" type="text" placeholder="e.g. groceries, coffee, insurance, etc." />
+
+      <div class="actions">
+        <button id="addEntry">Add entry</button>
+      </div>
+      <div class="sub">
+        Tip: use “Move money → Car fund” when you deliberately allocate money (so you don’t accidentally spend it).
+      </div>
+    </div>
+
+    <!-- Plan / allocations -->
+    <div class="card span-6">
+      <h2>Allocation</h2>
+      <div class="hint">
+        Your money is tracked in 3 buckets:
+        <ul>
+          <li><b>Cash</b>: what’s not allocated</li>
+          <li><b>Buffer</b>: safety money (don’t touch)</li>
+          <li><b>Car fund</b>: the car goal</li>
+        </ul>
+      </div>
+      <div class="hr"></div>
+      <div class="kpi">
+        <div>
+          <div class="label">Cash (unallocated)</div>
+          <div class="value mono" id="kpiCash">€0</div>
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Move to Car fund (€)</label>
+          <div class="row">
+            <input id="moveCarAmount" type="number" min="0" step="1" />
+            <button id="moveToCar">Move</button>
+          </div>
+        </div>
+        <div>
+          <label>Move to Buffer (€)</label>
+          <div class="row">
+            <input id="moveBufferAmount" type="number" min="0" step="1" />
+            <button id="moveToBuffer">Move</button>
+          </div>
+        </div>
+      </div>
+      <div class="sub" id="allocationHint"></div>
+    </div>
+
+    <!-- Ledger -->
+    <div class="card span-12">
+      <h2>Ledger</h2>
+      <div class="row" style="align-items:flex-end">
+        <div>
+          <label>Filter</label>
+          <select id="filter">
+            <option value="all">All</option>
+            <option value="income">Income</option>
+            <option value="expense">Expense</option>
+            <option value="debt">Debt</option>
+            <option value="move">Moves</option>
+          </select>
+        </div>
+        <div>
+          <label>Search</label>
+          <input id="search" type="text" placeholder="type to search description..." />
+        </div>
+        <div class="actions">
+          <button class="ghost" id="exportJson">Export JSON</button>
+          <button class="ghost" id="importJsonBtn">Import JSON</button>
+          <input id="importJson" type="file" accept="application/json" style="display:none"/>
+        </div>
+      </div>
+
+      <div style="margin-top:10px; overflow:auto">
+        <table class="table" id="table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Description</th>
+              <th class="right">Amount</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="sub" id="ledgerSummary"></div>
+    </div>
+
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
