@@ -57,7 +57,7 @@ const DEFAULTS = {
 const KEY = "carFundTracker.v1";
 
 // =======================
-// Sync logic (cloud)
+// Auth UI helpers
 // =======================
 function setAuthUI({ loggedIn, email, msg }) {
   const out = document.getElementById("loggedOut");
@@ -65,7 +65,7 @@ function setAuthUI({ loggedIn, email, msg }) {
   const userEmail = document.getElementById("userEmail");
   const authMsg = document.getElementById("authMsg");
 
-  if (msg && authMsg) authMsg.textContent = msg;
+  if (authMsg) authMsg.textContent = msg || "";
 
   if (!out || !inn) return;
   if (loggedIn) {
@@ -84,6 +84,67 @@ function setSyncStatus(text) {
   if (el) el.textContent = "Sync status: " + text;
 }
 
+// =======================
+// Local persistence
+// =======================
+function ensureNumbers(state) {
+  const keys = ["goal", "startingSavings", "bufferTarget", "hourlyRate", "rent", "bills", "food", "smoking", "social", "cash", "buffer", "carFund"];
+  for (const k of keys) state[k] = Number(state[k] || 0);
+}
+
+function normalizeState(state) {
+  if (!state || typeof state !== "object") state = structuredClone(DEFAULTS);
+  state.meta = state.meta || {};
+  state.meta.lastModified = Number(state.meta.lastModified || 0);
+  if (!Number.isFinite(state.meta.lastModified) || state.meta.lastModified <= 0) {
+    state.meta.lastModified = Date.now();
+  }
+  state.entries = Array.isArray(state.entries) ? state.entries : [];
+  ensureNumbers(state);
+  return state;
+}
+
+function load() {
+  const raw = localStorage.getItem(KEY);
+  if (!raw) {
+    const init = structuredClone(DEFAULTS);
+    init.cash = init.startingSavings;
+    save(init);
+    return init;
+  }
+  try {
+    return normalizeState(JSON.parse(raw));
+  } catch {
+    localStorage.removeItem(KEY);
+    const init = structuredClone(DEFAULTS);
+    init.cash = init.startingSavings;
+    save(init);
+    return init;
+  }
+}
+
+function save(state) {
+  state = normalizeState(state);
+  state.meta.lastModified = Date.now();
+
+  localStorage.setItem(KEY, JSON.stringify(state));
+  scheduleCloudSync(); // cloud sync when logged in
+}
+
+function addEntry(state, { date, type, amount, desc }) {
+  const entry = {
+    id: crypto.randomUUID(),
+    date: date || isoToday(),
+    type,
+    amount: Number(amount),
+    desc: String(desc || "").trim()
+  };
+  state.entries.unshift(entry);
+}
+
+// =======================
+// Cloud sync (Supabase)
+// =======================
 async function pushStateToCloud(state, statusText) {
   if (!sbClient) return;
 
@@ -140,21 +201,19 @@ async function pullCloudStateAndMerge() {
 
   const local = load();
   const localUpdated = local?.meta?.lastModified || 0;
-  const cloudUpdated = data?.state_json?.meta?.lastModified || 0;
+  const cloudState = data?.state_json ? normalizeState(data.state_json) : null;
+  const cloudUpdated = cloudState?.meta?.lastModified || 0;
 
-  if (!data) {
-    // First time: upload local as initial cloud state
+  if (!cloudState) {
     await pushStateToCloud(local, "No cloud state; uploaded local ✓");
     render();
     return;
   }
 
   if (cloudUpdated > localUpdated) {
-    // Cloud newer: replace local
-    localStorage.setItem(KEY, JSON.stringify(data.state_json));
+    localStorage.setItem(KEY, JSON.stringify(cloudState));
     setSyncStatus("Loaded cloud state ✓");
   } else {
-    // Local newer: push up
     await pushStateToCloud(local, "Local newer; uploaded ✓");
   }
 
@@ -164,7 +223,7 @@ async function pullCloudStateAndMerge() {
 // Debounced auto-push after local changes
 let syncTimer = null;
 function scheduleCloudSync() {
-  if (!sbClient) return; // only when signed in
+  if (!sbClient) return;
   clearTimeout(syncTimer);
   syncTimer = setTimeout(async () => {
     const state = load();
@@ -173,57 +232,19 @@ function scheduleCloudSync() {
 }
 
 // =======================
-// Local persistence
+// Calculations + rendering
 // =======================
-function load() {
-  const raw = localStorage.getItem(KEY);
-  if (!raw) {
-    const init = structuredClone(DEFAULTS);
-    init.cash = init.startingSavings;
-    save(init);
-    return init;
-  }
-  try {
-    return JSON.parse(raw);
-  } catch {
-    localStorage.removeItem(KEY);
-    const init = structuredClone(DEFAULTS);
-    init.cash = init.startingSavings;
-    save(init);
-    return init;
-  }
-}
-
-function save(state) {
-  state.meta = state.meta || {};
-  state.meta.lastModified = Date.now();
-
-  localStorage.setItem(KEY, JSON.stringify(state));
-  scheduleCloudSync();
-}
-
-function addEntry(state, { date, type, amount, desc }) {
-  const entry = {
-    id: crypto.randomUUID(),
-    date: date || isoToday(),
-    type,
-    amount: Number(amount),
-    desc: String(desc || "").trim()
-  };
-  state.entries.unshift(entry);
-}
-
 function classifyLabel(type) {
   if (type === "income") return ["Income", "income"];
   if (type === "expense") return ["Expense", "expense"];
   if (type === "debt") return ["Debt", "debt"];
-  if (type === "move_to_car" || type === "move_to_buffer") return ["Move", ""];
+  if (
+    type === "move_to_car" ||
+    type === "move_to_buffer" ||
+    type === "move_buffer_to_car" ||
+    type === "move_car_to_buffer"
+  ) return ["Move", ""];
   return [type, ""];
-}
-
-function ensureNumbers(state) {
-  const keys = ["goal", "startingSavings", "bufferTarget", "hourlyRate", "rent", "bills", "food", "smoking", "social", "cash", "buffer", "carFund"];
-  for (const k of keys) state[k] = Number(state[k] || 0);
 }
 
 function computeNetRatePerMonth(state) {
@@ -258,12 +279,15 @@ function estimateBuyDate(state) {
 
 function render() {
   const state = load();
-  ensureNumbers(state);
 
   document.getElementById("today").textContent =
     new Date().toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" });
 
-  const setVal = (id, v) => (document.getElementById(id).value = String(v ?? ""));
+  const setVal = (id, v) => {
+    const el = document.getElementById(id);
+    if (el) el.value = String(v ?? "");
+  };
+
   setVal("goal", state.goal);
   setVal("startingSavings", state.startingSavings);
   setVal("bufferTarget", state.bufferTarget);
@@ -274,7 +298,8 @@ function render() {
   setVal("smoking", state.smoking);
   setVal("social", state.social);
 
-  document.getElementById("entryDate").value = isoToday();
+  const dateEl = document.getElementById("entryDate");
+  if (dateEl) dateEl.value = isoToday();
 
   document.getElementById("kpiCarFund").textContent = fmtEUR(state.carFund);
   document.getElementById("kpiGoal").textContent = fmtEUR(state.goal);
@@ -309,8 +334,20 @@ function render() {
   );
   document.getElementById("allocationHint").textContent = hint.join(" ");
 
-  const filter = document.getElementById("filter").value;
-  const search = document.getElementById("search").value.toLowerCase().trim();
+  // Transfer hint (if you added the new UI)
+  const transferHintEl = document.getElementById("transferHint");
+  if (transferHintEl) {
+    transferHintEl.textContent =
+      state.buffer > state.bufferTarget
+        ? `Tip: You have ${fmtEUR(state.buffer - state.bufferTarget)} buffer surplus that could safely go to the car fund.`
+        : `Tip: Keep buffer at least ${fmtEUR(state.bufferTarget)}.`;
+  }
+
+  // Ledger
+  const filterEl = document.getElementById("filter");
+  const searchEl = document.getElementById("search");
+  const filter = filterEl ? filterEl.value : "all";
+  const search = (searchEl ? searchEl.value : "").toLowerCase().trim();
 
   const tbody = document.getElementById("tbody");
   tbody.innerHTML = "";
@@ -323,7 +360,14 @@ function render() {
     if (filter === "income") return e.type === "income";
     if (filter === "expense") return e.type === "expense";
     if (filter === "debt") return e.type === "debt";
-    if (filter === "move") return e.type === "move_to_car" || e.type === "move_to_buffer";
+    if (filter === "move") {
+      return (
+        e.type === "move_to_car" ||
+        e.type === "move_to_buffer" ||
+        e.type === "move_buffer_to_car" ||
+        e.type === "move_car_to_buffer"
+      );
+    }
     return true;
   });
 
@@ -347,7 +391,7 @@ function render() {
 
     const tdAmt = document.createElement("td");
     tdAmt.className = "right mono";
-    const sign = e.type === "income" ? "+" : e.type === "expense" || e.type === "debt" ? "−" : "";
+    const sign = e.type === "income" ? "+" : (e.type === "expense" || e.type === "debt") ? "−" : "";
     tdAmt.textContent = sign + fmtEUR(Math.abs(e.amount));
 
     tr.appendChild(tdDate);
@@ -405,7 +449,7 @@ document.getElementById("resetAll").addEventListener("click", () => {
 });
 
 document.getElementById("addSalary").addEventListener("click", () => {
-  const state = load(); ensureNumbers(state);
+  const state = load();
   const amt = Number(document.getElementById("salaryAmount").value || 0);
   if (amt <= 0) return alert("Enter a positive salary amount.");
   state.cash += amt;
@@ -416,7 +460,7 @@ document.getElementById("addSalary").addEventListener("click", () => {
 });
 
 document.getElementById("payDebt").addEventListener("click", () => {
-  const state = load(); ensureNumbers(state);
+  const state = load();
   const amt = Number(document.getElementById("debtAmount").value || 0);
   if (amt <= 0) return alert("Enter a positive debt amount.");
   if (state.cash < amt) return alert("Not enough CASH. Move from buffer/car fund back manually or add income.");
@@ -428,7 +472,7 @@ document.getElementById("payDebt").addEventListener("click", () => {
 });
 
 document.getElementById("addHours").addEventListener("click", () => {
-  const state = load(); ensureNumbers(state);
+  const state = load();
   const hours = Number(document.getElementById("hours").value || 0);
   if (hours <= 0) return alert("Enter positive hours.");
   const income = Math.round(hours * state.hourlyRate);
@@ -440,7 +484,7 @@ document.getElementById("addHours").addEventListener("click", () => {
 });
 
 document.getElementById("addMonthly").addEventListener("click", () => {
-  const state = load(); ensureNumbers(state);
+  const state = load();
   const monthly = state.rent + state.bills + state.food + state.smoking + state.social;
   if (monthly <= 0) return alert("Your monthly costs are 0. Set them in Setup first.");
   if (state.cash < monthly) return alert("Not enough CASH to log monthly costs.");
@@ -451,7 +495,7 @@ document.getElementById("addMonthly").addEventListener("click", () => {
 });
 
 document.getElementById("addEntry").addEventListener("click", () => {
-  const state = load(); ensureNumbers(state);
+  const state = load();
 
   const type = document.getElementById("entryType").value;
   const amount = Number(document.getElementById("entryAmount").value || 0);
@@ -484,7 +528,7 @@ document.getElementById("addEntry").addEventListener("click", () => {
 });
 
 document.getElementById("moveToCar").addEventListener("click", () => {
-  const state = load(); ensureNumbers(state);
+  const state = load();
   const amt = Number(document.getElementById("moveCarAmount").value || 0);
   if (amt <= 0) return alert("Enter a positive amount.");
   if (state.cash < amt) return alert("Not enough CASH.");
@@ -497,7 +541,7 @@ document.getElementById("moveToCar").addEventListener("click", () => {
 });
 
 document.getElementById("moveToBuffer").addEventListener("click", () => {
-  const state = load(); ensureNumbers(state);
+  const state = load();
   const amt = Number(document.getElementById("moveBufferAmount").value || 0);
   if (amt <= 0) return alert("Enter a positive amount.");
   if (state.cash < amt) return alert("Not enough CASH.");
@@ -506,6 +550,72 @@ document.getElementById("moveToBuffer").addEventListener("click", () => {
   addEntry(state, { type: "move_to_buffer", amount: amt, desc: "Allocate to buffer", date: isoToday() });
   save(state);
   document.getElementById("moveBufferAmount").value = "";
+  render();
+});
+
+// =======================
+// NEW: Direct transfers Buffer ↔ Car fund
+// =======================
+document.getElementById("bufferToCar")?.addEventListener("click", () => {
+  const state = load();
+  const amt = Number(document.getElementById("transferAmount").value || 0);
+  if (amt <= 0) return alert("Enter a positive amount.");
+  if (state.buffer < amt) return alert("Not enough money in BUFFER.");
+
+  const after = state.buffer - amt;
+  if (after < state.bufferTarget) {
+    const ok = confirm(
+      `This will drop your buffer below target.\n\n` +
+      `Buffer now: ${fmtEUR(state.buffer)}\n` +
+      `Buffer target: ${fmtEUR(state.bufferTarget)}\n` +
+      `Buffer after: ${fmtEUR(after)}\n\n` +
+      `Are you sure?`
+    );
+    if (!ok) return;
+  }
+
+  state.buffer -= amt;
+  state.carFund += amt;
+
+  addEntry(state, {
+    type: "move_buffer_to_car",
+    amount: amt,
+    desc: "Transfer: Buffer → Car fund",
+    date: isoToday()
+  });
+
+  save(state);
+  document.getElementById("transferAmount").value = "";
+  render();
+});
+
+document.getElementById("carToBuffer")?.addEventListener("click", () => {
+  const state = load();
+  const amt = Number(document.getElementById("transferAmount").value || 0);
+  if (amt <= 0) return alert("Enter a positive amount.");
+  if (state.carFund < amt) return alert("Not enough money in CAR FUND.");
+
+  const ok = confirm(
+    `Transfer from Car fund → Buffer?\n\n` +
+    `This is usually only for emergencies or rebuilding buffer.\n\n` +
+    `Car fund now: ${fmtEUR(state.carFund)}\n` +
+    `Buffer now: ${fmtEUR(state.buffer)}\n\n` +
+    `Proceed?`
+  );
+  if (!ok) return;
+
+  state.carFund -= amt;
+  state.buffer += amt;
+
+  addEntry(state, {
+    type: "move_car_to_buffer",
+    amount: amt,
+    desc: "Transfer: Car fund → Buffer",
+    date: isoToday()
+  });
+
+  save(state);
+  document.getElementById("transferAmount").value = "";
   render();
 });
 
@@ -533,11 +643,9 @@ document.getElementById("importJson").addEventListener("change", async (e) => {
   if (!file) return;
   const text = await file.text();
   try {
-    const data = JSON.parse(text);
-    if (!data || typeof data !== "object") throw new Error("bad");
+    const data = normalizeState(JSON.parse(text));
     localStorage.setItem(KEY, JSON.stringify(data));
     render();
-    // If signed in, upload imported state too
     scheduleCloudSync();
     alert("Imported ✓");
   } catch {
@@ -551,10 +659,8 @@ document.getElementById("importJson").addEventListener("change", async (e) => {
 // Auth bootstrap (Magic Link)
 // =======================
 async function bootstrapAuth() {
-  // init client
   await initSupabase();
 
-  // Initial session check
   const { data: sessData, error: sessErr } = await sbClient.auth.getSession();
   if (sessErr) {
     setAuthUI({ loggedIn: false, msg: "Auth error: " + sessErr.message });
@@ -568,7 +674,6 @@ async function bootstrapAuth() {
     setSyncStatus("Not signed in");
   }
 
-  // React to auth changes (clicking the email link)
   sbClient.auth.onAuthStateChange(async (_event, session) => {
     if (session?.user) {
       setAuthUI({ loggedIn: true, email: session.user.email });
@@ -580,25 +685,22 @@ async function bootstrapAuth() {
     }
   });
 
-  // Send magic link
   document.getElementById("sendMagicLink")?.addEventListener("click", async () => {
     const email = document.getElementById("authEmail").value.trim();
     if (!email) return alert("Enter your email.");
 
-    // Redirect back to this exact page after clicking the email link
     const redirectTo = window.location.origin + window.location.pathname;
 
     const { error } = await sbClient.auth.signInWithOtp({
       email,
-      options: {
-        emailRedirectTo: redirectTo
-      }
+      options: { emailRedirectTo: redirectTo }
     });
 
+    const authMsg = document.getElementById("authMsg");
     if (error) {
-      setAuthUI({ loggedIn: false, msg: "Error: " + error.message });
+      if (authMsg) authMsg.textContent = "Error: " + error.message;
     } else {
-      setAuthUI({ loggedIn: false, msg: "Magic link sent. Check your email." });
+      if (authMsg) authMsg.textContent = "Magic link sent. Check your email.";
     }
   });
 

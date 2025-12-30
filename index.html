@@ -264,6 +264,26 @@
           </div>
         </div>
       </div>
+      <div class="hr"></div>
+      <h3 class="miniTitle">Transfer between Buffer ↔ Car fund</h3>
+
+      <div class="row">
+        <div>
+          <label>Amount (€)</label>
+          <input id="transferAmount" type="number" min="0" step="1" placeholder="e.g. 286" />
+        </div>
+
+        <div style="flex:0 0 auto; align-self:flex-end;">
+          <button id="bufferToCar">Buffer → Car</button>
+        </div>
+
+        <div style="flex:0 0 auto; align-self:flex-end;">
+          <button class="danger" id="carToBuffer">Car → Buffer</button>
+        </div>
+      </div>
+
+      <div class="sub" id="transferHint"></div>
+      
       <div class="sub" id="allocationHint"></div>
     </div>
 
