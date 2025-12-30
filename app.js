@@ -242,7 +242,9 @@ function classifyLabel(type) {
     type === "move_to_car" ||
     type === "move_to_buffer" ||
     type === "move_buffer_to_car" ||
-    type === "move_car_to_buffer"
+    type === "move_car_to_buffer" ||
+    type === "move_buffer_to_cash" ||
+    type === "move_car_to_cash"
   ) return ["Move", ""];
   return [type, ""];
 }
@@ -616,6 +618,69 @@ document.getElementById("carToBuffer")?.addEventListener("click", () => {
 
   save(state);
   document.getElementById("transferAmount").value = "";
+  render();
+});
+
+document.getElementById("bufferToCash")?.addEventListener("click", () => {
+  const state = load();
+  const amt = Number(document.getElementById("releaseAmount").value || 0);
+
+  if (amt <= 0) return alert("Enter a positive amount.");
+  if (state.buffer < amt) return alert("Not enough money in BUFFER.");
+
+  const after = state.buffer - amt;
+  const ok = confirm(
+    `Release money from BUFFER → CASH?\n\n` +
+    `Buffer now: ${fmtEUR(state.buffer)}\n` +
+    `Buffer after: ${fmtEUR(after)}\n` +
+    `Target buffer: ${fmtEUR(state.bufferTarget)}\n\n` +
+    `Only do this for real need.\nProceed?`
+  );
+  if (!ok) return;
+
+  state.buffer -= amt;
+  state.cash += amt;
+
+  addEntry(state, {
+    type: "move_buffer_to_cash",
+    amount: amt,
+    desc: "Release: Buffer → Cash",
+    date: isoToday()
+  });
+
+  save(state);
+  document.getElementById("releaseAmount").value = "";
+  render();
+});
+
+document.getElementById("carToCash")?.addEventListener("click", () => {
+  const state = load();
+  const amt = Number(document.getElementById("releaseAmount").value || 0);
+
+  if (amt <= 0) return alert("Enter a positive amount.");
+  if (state.carFund < amt) return alert("Not enough money in CAR FUND.");
+
+  const ok = confirm(
+    `Release money from CAR FUND → CASH?\n\n` +
+    `This will slow down the car goal.\n\n` +
+    `Car fund now: ${fmtEUR(state.carFund)}\n` +
+    `Cash after: ${fmtEUR(state.cash + amt)}\n\n` +
+    `Proceed?`
+  );
+  if (!ok) return;
+
+  state.carFund -= amt;
+  state.cash += amt;
+
+  addEntry(state, {
+    type: "move_car_to_cash",
+    amount: amt,
+    desc: "Release: Car fund → Cash",
+    date: isoToday()
+  });
+
+  save(state);
+  document.getElementById("releaseAmount").value = "";
   render();
 });
 
