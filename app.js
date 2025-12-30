@@ -36,6 +36,9 @@ const fmtEUR = (n) => {
 const isoToday = () => new Date().toISOString().slice(0, 10);
 
 const DEFAULTS = {
+  meta: {
+    lastModified: Date.now()
+  },
   goal: 3500,
   startingSavings: 1486,
   bufferTarget: 1200,
@@ -79,14 +82,6 @@ function setAuthUI({ loggedIn, email, msg }) {
 function setSyncStatus(text) {
   const el = document.getElementById("syncStatus");
   if (el) el.textContent = "Sync status: " + text;
-}
-
-function latestLocalUpdatedAt(state) {
-  // Lightweight heuristic: latest entry date; 0 if none
-  if (!state?.entries?.length) return 0;
-  const e = state.entries[0];
-  const t = new Date((e.date || "1970-01-01") + "T00:00:00").getTime();
-  return Number.isFinite(t) ? t : 0;
 }
 
 async function pushStateToCloud(state, statusText) {
@@ -144,8 +139,8 @@ async function pullCloudStateAndMerge() {
   }
 
   const local = load();
-  const localUpdated = latestLocalUpdatedAt(local);
-  const cloudUpdated = data?.updated_at ? new Date(data.updated_at).getTime() : 0;
+  const localUpdated = local?.meta?.lastModified || 0;
+  const cloudUpdated = data?.state_json?.meta?.lastModified || 0;
 
   if (!data) {
     // First time: upload local as initial cloud state
@@ -200,8 +195,11 @@ function load() {
 }
 
 function save(state) {
+  state.meta = state.meta || {};
+  state.meta.lastModified = Date.now();
+
   localStorage.setItem(KEY, JSON.stringify(state));
-  scheduleCloudSync(); // cloud sync when logged in
+  scheduleCloudSync();
 }
 
 function addEntry(state, { date, type, amount, desc }) {
