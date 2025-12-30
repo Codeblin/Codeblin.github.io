@@ -1,3 +1,34 @@
+// =======================
+// Supabase (Magic Link Sync)
+// =======================
+// Put your values here from Supabase Project Settings → API
+const SUPABASE_URL = "https://YOUR_PROJECT.supabase.co";
+const SUPABASE_ANON_KEY = "YOUR_ANON_PUBLIC_KEY";
+
+// Load Supabase SDK (CDN)
+async function loadSupabase() {
+  if (window.supabase) return window.supabase;
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+    s.onload = () => resolve(window.supabase);
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+let sb = null;
+let sbClient = null;
+
+async function initSupabase() {
+  sb = await loadSupabase();
+  sbClient = sb.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  return sbClient;
+}
+
+// =======================
+// App Helpers
+// =======================
 const fmtEUR = (n) => {
   const x = Number(n || 0);
   return x.toLocaleString(undefined, { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
@@ -22,6 +53,133 @@ const DEFAULTS = {
 
 const KEY = "carFundTracker.v1";
 
+// =======================
+// Sync logic (cloud)
+// =======================
+function setAuthUI({ loggedIn, email, msg }) {
+  const out = document.getElementById("loggedOut");
+  const inn = document.getElementById("loggedIn");
+  const userEmail = document.getElementById("userEmail");
+  const authMsg = document.getElementById("authMsg");
+
+  if (msg && authMsg) authMsg.textContent = msg;
+
+  if (!out || !inn) return;
+  if (loggedIn) {
+    out.style.display = "none";
+    inn.style.display = "block";
+    if (userEmail) userEmail.textContent = email || "—";
+  } else {
+    inn.style.display = "none";
+    out.style.display = "block";
+    if (userEmail) userEmail.textContent = "—";
+  }
+}
+
+function setSyncStatus(text) {
+  const el = document.getElementById("syncStatus");
+  if (el) el.textContent = "Sync status: " + text;
+}
+
+function latestLocalUpdatedAt(state) {
+  // Lightweight heuristic: latest entry date; 0 if none
+  if (!state?.entries?.length) return 0;
+  const e = state.entries[0];
+  const t = new Date((e.date || "1970-01-01") + "T00:00:00").getTime();
+  return Number.isFinite(t) ? t : 0;
+}
+
+async function pushStateToCloud(state, statusText) {
+  if (!sbClient) return;
+
+  const { data: userRes, error: userErr } = await sbClient.auth.getUser();
+  if (userErr) {
+    setSyncStatus("Auth error: " + userErr.message);
+    return;
+  }
+  const user = userRes?.user;
+  if (!user) return;
+
+  setSyncStatus("Saving to cloud…");
+
+  const payload = {
+    user_id: user.id,
+    state_json: state,
+    updated_at: new Date().toISOString()
+  };
+
+  const { error } = await sbClient
+    .from("user_state")
+    .upsert(payload, { onConflict: "user_id" });
+
+  if (error) {
+    setSyncStatus("Save failed: " + error.message);
+  } else {
+    setSyncStatus(statusText || "Saved ✓");
+  }
+}
+
+async function pullCloudStateAndMerge() {
+  if (!sbClient) return;
+
+  const { data: userRes, error: userErr } = await sbClient.auth.getUser();
+  if (userErr) {
+    setSyncStatus("Auth error: " + userErr.message);
+    return;
+  }
+  const user = userRes?.user;
+  if (!user) return;
+
+  setSyncStatus("Pulling cloud state…");
+
+  const { data, error } = await sbClient
+    .from("user_state")
+    .select("state_json, updated_at")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (error) {
+    setSyncStatus("Pull failed: " + error.message);
+    return;
+  }
+
+  const local = load();
+  const localUpdated = latestLocalUpdatedAt(local);
+  const cloudUpdated = data?.updated_at ? new Date(data.updated_at).getTime() : 0;
+
+  if (!data) {
+    // First time: upload local as initial cloud state
+    await pushStateToCloud(local, "No cloud state; uploaded local ✓");
+    render();
+    return;
+  }
+
+  if (cloudUpdated > localUpdated) {
+    // Cloud newer: replace local
+    localStorage.setItem(KEY, JSON.stringify(data.state_json));
+    setSyncStatus("Loaded cloud state ✓");
+  } else {
+    // Local newer: push up
+    await pushStateToCloud(local, "Local newer; uploaded ✓");
+  }
+
+  render();
+}
+
+// Debounced auto-push after local changes
+let syncTimer = null;
+function scheduleCloudSync() {
+  if (!sbClient) return; // only when signed in
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(async () => {
+    const state = load();
+    await pushStateToCloud(state, "Auto-synced ✓");
+  }, 800);
+}
+
+// =======================
+// Local persistence
+// =======================
 function load() {
   const raw = localStorage.getItem(KEY);
   if (!raw) {
@@ -43,6 +201,7 @@ function load() {
 
 function save(state) {
   localStorage.setItem(KEY, JSON.stringify(state));
+  scheduleCloudSync(); // cloud sync when logged in
 }
 
 function addEntry(state, { date, type, amount, desc }) {
@@ -80,7 +239,7 @@ function computeNetRatePerMonth(state) {
     if (e.type === "income") net += e.amount;
     if (e.type === "expense" || e.type === "debt") net -= e.amount;
   }
-  return net / 2; // 60-day net => ~monthly
+  return net / 2;
 }
 
 function estimateBuyDate(state) {
@@ -88,7 +247,7 @@ function estimateBuyDate(state) {
   let rate = computeNetRatePerMonth(state);
   if (rate <= 0) return { dateText: "—", rateText: fmtEUR(rate) + " / month" };
 
-  if (state.buffer < state.bufferTarget) rate *= 0.75; // conservative
+  if (state.buffer < state.bufferTarget) rate *= 0.75;
   const monthsNeeded = remaining / rate;
   const daysNeeded = Math.ceil(monthsNeeded * 30);
 
@@ -145,9 +304,10 @@ function render() {
 
   const hint = [];
   hint.push(`Cash: ${fmtEUR(state.cash)} • Buffer: ${fmtEUR(state.buffer)} • Car fund: ${fmtEUR(state.carFund)}`);
-  hint.push(state.buffer < state.bufferTarget
-    ? `Recommendation: prioritize buffer until it reaches ${fmtEUR(state.bufferTarget)}.`
-    : `You’re safe: buffer target met. You can push the car fund.`
+  hint.push(
+    state.buffer < state.bufferTarget
+      ? `Recommendation: prioritize buffer until it reaches ${fmtEUR(state.bufferTarget)}.`
+      : `You’re safe: buffer target met. You can push the car fund.`
   );
   document.getElementById("allocationHint").textContent = hint.join(" ");
 
@@ -159,7 +319,7 @@ function render() {
 
   let totalIncome = 0, totalExpense = 0, totalDebt = 0;
 
-  const rows = state.entries.filter(e => {
+  const rows = state.entries.filter((e) => {
     if (search && !(e.desc || "").toLowerCase().includes(search)) return false;
     if (filter === "all") return true;
     if (filter === "income") return e.type === "income";
@@ -189,7 +349,7 @@ function render() {
 
     const tdAmt = document.createElement("td");
     tdAmt.className = "right mono";
-    const sign = (e.type === "income") ? "+" : (e.type === "expense" || e.type === "debt") ? "−" : "";
+    const sign = e.type === "income" ? "+" : e.type === "expense" || e.type === "debt" ? "−" : "";
     tdAmt.textContent = sign + fmtEUR(Math.abs(e.amount));
 
     tr.appendChild(tdDate);
@@ -220,7 +380,9 @@ function readSettingsFromUI(state) {
   state.social = getNum("social");
 }
 
-// --- Events ---
+// =======================
+// UI Events (existing app)
+// =======================
 document.getElementById("saveSettings").addEventListener("click", () => {
   const state = load();
   const prevStarting = Number(state.startingSavings || 0);
@@ -377,6 +539,8 @@ document.getElementById("importJson").addEventListener("change", async (e) => {
     if (!data || typeof data !== "object") throw new Error("bad");
     localStorage.setItem(KEY, JSON.stringify(data));
     render();
+    // If signed in, upload imported state too
+    scheduleCloudSync();
     alert("Imported ✓");
   } catch {
     alert("Invalid JSON file.");
@@ -385,9 +549,77 @@ document.getElementById("importJson").addEventListener("change", async (e) => {
   }
 });
 
+// =======================
+// Auth bootstrap (Magic Link)
+// =======================
+async function bootstrapAuth() {
+  // init client
+  await initSupabase();
+
+  // Initial session check
+  const { data: sessData, error: sessErr } = await sbClient.auth.getSession();
+  if (sessErr) {
+    setAuthUI({ loggedIn: false, msg: "Auth error: " + sessErr.message });
+    setSyncStatus("Auth error");
+  } else if (sessData?.session?.user) {
+    setAuthUI({ loggedIn: true, email: sessData.session.user.email });
+    setSyncStatus("Signed in");
+    await pullCloudStateAndMerge();
+  } else {
+    setAuthUI({ loggedIn: false });
+    setSyncStatus("Not signed in");
+  }
+
+  // React to auth changes (clicking the email link)
+  sbClient.auth.onAuthStateChange(async (_event, session) => {
+    if (session?.user) {
+      setAuthUI({ loggedIn: true, email: session.user.email });
+      setSyncStatus("Signed in");
+      await pullCloudStateAndMerge();
+    } else {
+      setAuthUI({ loggedIn: false });
+      setSyncStatus("Signed out");
+    }
+  });
+
+  // Send magic link
+  document.getElementById("sendMagicLink")?.addEventListener("click", async () => {
+    const email = document.getElementById("authEmail").value.trim();
+    if (!email) return alert("Enter your email.");
+
+    // Redirect back to this exact page after clicking the email link
+    const redirectTo = window.location.origin + window.location.pathname;
+
+    const { error } = await sbClient.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: redirectTo
+      }
+    });
+
+    if (error) {
+      setAuthUI({ loggedIn: false, msg: "Error: " + error.message });
+    } else {
+      setAuthUI({ loggedIn: false, msg: "Magic link sent. Check your email." });
+    }
+  });
+
+  document.getElementById("signOut")?.addEventListener("click", async () => {
+    await sbClient.auth.signOut();
+  });
+
+  document.getElementById("syncNow")?.addEventListener("click", async () => {
+    await pullCloudStateAndMerge();
+  });
+}
+
+// =======================
 // Init
-(function init() {
+// =======================
+(async function init() {
   document.getElementById("salaryAmount").value = 1800;
   document.getElementById("debtAmount").value = 314;
+
   render();
+  await bootstrapAuth();
 })();

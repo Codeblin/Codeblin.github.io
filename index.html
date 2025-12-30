@@ -21,6 +21,42 @@
 <div class="wrap">
   <div class="grid">
 
+    <!-- Auth / Sync -->
+    <div class="card span-12" id="authCard">
+      <h2>Sync across devices</h2>
+
+      <div id="loggedOut">
+        <div class="row">
+          <div>
+            <label>Email (magic link)</label>
+            <input id="authEmail" type="email" placeholder="you@example.com" />
+          </div>
+          <div style="flex:0 0 auto; align-self:flex-end;">
+            <button id="sendMagicLink">Send magic link</button>
+          </div>
+        </div>
+        <div class="sub" id="authMsg"></div>
+      </div>
+
+      <div id="loggedIn" style="display:none;">
+        <div class="row" style="align-items:center; justify-content:space-between;">
+          <div class="pill">Signed in as <b id="userEmail">—</b></div>
+          <div class="actions">
+            <button class="ghost" id="syncNow">Sync now</button>
+            <button class="danger" id="signOut">Sign out</button>
+          </div>
+        </div>
+
+        <div class="sub" id="syncStatus">Sync status: —</div>
+
+        <div class="hr"></div>
+        <div class="hint">
+          When signed in, changes auto-sync to the cloud (and still save locally for offline use).
+        </div>
+      </div>
+    </div>
+
+
     <!-- KPIs -->
     <div class="card span-4">
       <h2>Car Fund</h2>
