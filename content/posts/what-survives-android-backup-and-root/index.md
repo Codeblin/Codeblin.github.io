@@ -2,12 +2,12 @@
 record: 6
 title: What Survives a Backup, a Root and an Uninstall
 subtitle: Part three — data leaving the device through channels that were never attacks
-excerpt: >-
-  Backup, migration and uninstall are features, not exploits. They are also the
-  most reliable way sensitive data leaves a device, and the defaults are not
-  the ones you would choose.
+excerpt: Backup, migration and uninstall are features, not exploits. They are also the
+  most reliable way sensitive data leaves a device, and the defaults are not the ones
+  you would choose.
 status: published
 publishedAt: 2026-03-17
+updatedAt: 2026-09-15
 category: mobile-security
 tags:
   - android
