@@ -1,0 +1,117 @@
+---
+import type { HeadingRef } from '@codeblin/content';
+
+interface Props {
+  headings: readonly HeadingRef[];
+}
+
+const { headings } = Astro.props;
+---
+
+{
+  headings.length > 1 && (
+    <nav class="toc" aria-label="On this page" data-toc>
+      <p class="toc__head label">
+        <span class="toc__slash" aria-hidden="true">
+          /
+        </span>
+        Contents
+      </p>
+      <ol class="toc__list" role="list">
+        {headings.map((heading) => (
+          <li data-level={heading.level}>
+            <a href={`#${heading.anchor}`}>
+              <span class="toc__offset micro" aria-hidden="true">
+                {heading.offset}
+              </span>
+              <span class="toc__text">{heading.text}</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  )
+}
+
+<style>
+  /*
+   * Hex offsets are a real index of the document's major sections, not
+   * decoration. The current entry is marked by an accent bracket that moves
+   * with the reader — see initTableOfContents in interactions.ts.
+   */
+  .toc {
+    position: sticky;
+    inset-block-start: calc(var(--masthead-h) + var(--s-8));
+    max-block-size: calc(100vb - var(--masthead-h) - var(--s-16));
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--hair) transparent;
+  }
+
+  .toc__head {
+    display: flex;
+    gap: var(--s-2);
+    color: var(--bone);
+    padding-block-end: var(--s-3);
+    border-block-end: var(--bw) solid var(--hair);
+  }
+
+  .toc__slash {
+    color: var(--sulfur);
+  }
+
+  .toc__list {
+    list-style: none;
+    margin: var(--s-3) 0 0;
+    padding: 0;
+    display: grid;
+    gap: 1px;
+  }
+
+  .toc__list a {
+    display: grid;
+    grid-template-columns: 2.75rem minmax(0, 1fr);
+    gap: var(--s-2);
+    padding: var(--s-2) var(--s-2) var(--s-2) 0;
+    text-decoration: none;
+    border-inline-start: 2px solid transparent;
+    padding-inline-start: var(--s-3);
+  }
+
+  .toc__list li[data-level="3"] a {
+    padding-inline-start: var(--s-6);
+  }
+
+  .toc__list li[data-level="4"] a {
+    padding-inline-start: var(--s-8);
+  }
+
+  .toc__offset {
+    color: var(--ghost);
+  }
+
+  .toc__text {
+    color: var(--dust);
+    font-size: var(--fs-small);
+    line-height: 1.35;
+    font-family: var(--font-body);
+  }
+
+  .toc__list a:hover .toc__text,
+  .toc__list a:focus-visible .toc__text {
+    color: var(--bone);
+  }
+
+  .toc__list a[data-current] {
+    border-inline-start-color: var(--sulfur);
+    background: var(--sulfur-veil);
+  }
+
+  .toc__list a[data-current] .toc__offset {
+    color: var(--sulfur);
+  }
+
+  .toc__list a[data-current] .toc__text {
+    color: var(--bone);
+  }
+</style>

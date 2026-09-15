@@ -1,0 +1,116 @@
+---
+import { listPosts, listProjects, readPage, readTaxonomy } from '@codeblin/content';
+
+import BlockRenderer from '~/blocks/BlockRenderer.astro';
+import DotLeader from '~/components/DotLeader.astro';
+import PageHeader from '~/components/PageHeader.astro';
+import Base from '~/layouts/Base.astro';
+import { stampDate } from '~/lib/format.ts';
+import { author, social } from '~/site.config.ts';
+
+const page = readPage('about');
+const posts = listPosts();
+const projects = listProjects();
+const { categories } = readTaxonomy();
+
+const firstPublished = posts.at(-1)?.frontmatter.publishedAt;
+const lastPublished = posts[0]?.frontmatter.publishedAt;
+---
+
+<Base title={page.frontmatter.title} description={page.frontmatter.description}>
+  <PageHeader
+    eyebrow={page.frontmatter.eyebrow ?? 'PROFILE'}
+    title={page.frontmatter.title}
+    lede={page.frontmatter.subtitle}
+  />
+
+  <div class="about shell">
+    <div class="about__body">
+      <BlockRenderer blocks={page.blocks} kind="posts" slug="about" />
+    </div>
+
+    <aside class="about__rail">
+      <section class="panel notched">
+        <p class="panel__head label">
+          <span class="panel__slash" aria-hidden="true">/</span>
+          Archive state
+        </p>
+        <dl class="panel__list">
+          <DotLeader label="Records" value={String(posts.length)} />
+          <DotLeader label="Projects" value={String(projects.length)} />
+          <DotLeader label="Topics" value={String(categories.length)} />
+          <DotLeader label="First entry" value={stampDate(firstPublished)} />
+          <DotLeader label="Latest entry" value={stampDate(lastPublished)} />
+        </dl>
+      </section>
+
+      <section class="panel notched">
+        <p class="panel__head label">
+          <span class="panel__slash" aria-hidden="true">/</span>
+          Contact
+        </p>
+        <dl class="panel__list">
+          <DotLeader label="Email" value={author.email} href={`mailto:${author.email}`} />
+          {
+            social.map((link) => (
+              <DotLeader label={link.label} value="OPEN ↗" href={link.href} />
+            ))
+          }
+        </dl>
+      </section>
+    </aside>
+  </div>
+</Base>
+
+<style>
+  .about {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-12);
+  }
+
+  @media (width >= 62rem) {
+    .about {
+      grid-template-columns: minmax(0, var(--measure)) minmax(15rem, 22rem);
+      gap: var(--s-16);
+      justify-content: start;
+      padding-inline-start: clamp(0rem, 4vw, 6rem);
+    }
+  }
+
+  .about__body {
+    max-inline-size: var(--measure);
+    min-inline-size: 0;
+  }
+
+  .about__rail {
+    display: grid;
+    gap: var(--grid-gap);
+    align-content: start;
+  }
+
+  .panel {
+    padding: var(--s-4) var(--s-5);
+    border: var(--bw) solid var(--hair);
+    background: var(--tar);
+    --notch: 12px;
+  }
+
+  .panel__head {
+    display: flex;
+    gap: var(--s-2);
+    color: var(--bone);
+    padding-block-end: var(--s-3);
+    border-block-end: var(--bw) solid var(--hair);
+  }
+
+  .panel__slash {
+    color: var(--sulfur);
+  }
+
+  .panel__list {
+    display: grid;
+    gap: var(--s-1);
+    margin-block-start: var(--s-3);
+  }
+</style>

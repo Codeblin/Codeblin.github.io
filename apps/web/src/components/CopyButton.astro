@@ -1,0 +1,64 @@
+---
+interface Props {
+  /** Id of the element whose text content is copied. */
+  target: string;
+  label?: string;
+}
+
+const { target, label = 'Copy' } = Astro.props;
+---
+
+<button type="button" class="copy micro" data-copy-for={target} aria-label={label}>
+  <span class="copy__idle" aria-hidden="true">COPY</span>
+  <span class="copy__done" aria-hidden="true">COPIED</span>
+  <span class="copy__failed" aria-hidden="true">FAILED</span>
+</button>
+
+<style>
+  .copy {
+    position: relative;
+    display: grid;
+    place-items: center start;
+    min-inline-size: 4.5em;
+    padding: 2px 0;
+    color: var(--dust);
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+
+  .copy:hover,
+  .copy:focus-visible {
+    color: var(--bone);
+  }
+
+  .copy > span {
+    grid-area: 1 / 1;
+  }
+
+  .copy__done,
+  .copy__failed {
+    opacity: 0;
+  }
+
+  .copy[data-state="copied"] {
+    color: var(--sulfur);
+  }
+
+  .copy[data-state="copied"] .copy__idle,
+  .copy[data-state="failed"] .copy__idle {
+    opacity: 0;
+  }
+
+  .copy[data-state="copied"] .copy__done {
+    opacity: 1;
+  }
+
+  .copy[data-state="failed"] {
+    color: var(--sev-high);
+  }
+
+  .copy[data-state="failed"] .copy__failed {
+    opacity: 1;
+  }
+</style>

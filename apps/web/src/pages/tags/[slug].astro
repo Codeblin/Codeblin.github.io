@@ -1,0 +1,49 @@
+---
+import { listPosts, resolveTag, type LoadedPost, type Tag } from '@codeblin/content';
+import type { GetStaticPaths } from 'astro';
+
+import RecordRow from '~/components/RecordRow.astro';
+import PageHeader from '~/components/PageHeader.astro';
+import Base from '~/layouts/Base.astro';
+
+export const getStaticPaths = (() => {
+  const posts = listPosts();
+  const slugs = new Set(posts.flatMap((post) => post.frontmatter.tags));
+
+  return [...slugs].sort().map((slug) => ({
+    params: { slug },
+    props: {
+      tag: resolveTag(slug),
+      posts: posts.filter((post) => post.frontmatter.tags.includes(slug)),
+    },
+  }));
+}) satisfies GetStaticPaths;
+
+interface Props {
+  tag: Tag;
+  posts: LoadedPost[];
+}
+
+const { tag, posts } = Astro.props;
+const description =
+  tag.description || `Every record tagged ${tag.name}. ${posts.length} in total.`;
+---
+
+<Base title={`#${tag.slug}`} description={description}>
+  <PageHeader
+    eyebrow="TAG"
+    title={`#${tag.slug}`}
+    meta={`${posts.length} ${posts.length === 1 ? 'RECORD' : 'RECORDS'}`}
+    lede={tag.description || undefined}
+  />
+
+  <div class="shell rows">
+    {posts.map((post) => <RecordRow post={post} revealGroup="tag" />)}
+  </div>
+</Base>
+
+<style>
+  .rows {
+    border-block-start: var(--bw) solid var(--hair);
+  }
+</style>

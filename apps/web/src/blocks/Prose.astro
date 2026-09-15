@@ -1,0 +1,18 @@
+---
+import { renderMarkdown, type Block } from '@codeblin/content';
+
+interface Props {
+  block: Extract<Block, { type: 'prose' }>;
+}
+
+const { block } = Astro.props;
+
+/**
+ * Rendered at build time with raw HTML disabled at the mdast→hast boundary,
+ * so this string cannot contain markup the author did not go through the
+ * block vocabulary to produce. See packages/content/src/markdown/inline.ts.
+ */
+const html = renderMarkdown(block.markdown);
+---
+
+<div class="prose" set:html={html} />

@@ -1,0 +1,64 @@
+---
+import type { Block } from '@codeblin/content';
+import Frame from '~/components/Frame.astro';
+import type { RecordKind } from '~/lib/media.ts';
+
+interface Props {
+  block: Extract<Block, { type: 'gallery' }>;
+  kind: RecordKind;
+  slug: string;
+}
+
+const { block, kind, slug } = Astro.props;
+---
+
+<div class="gallery" style={`--columns: ${block.columns}`}>
+  {
+    block.items.map((item, index) => (
+      <figure class="gallery__item">
+        <Frame
+          kind={kind}
+          slug={slug}
+          src={item.src}
+          alt={item.alt}
+          duotone={block.duotone}
+          widths={[320, 640, 960]}
+          sizes={`(min-width: 48rem) ${Math.round(100 / block.columns)}vw, 50vw`}
+        />
+        <figcaption class="gallery__caption micro">
+          <span class="gallery__index">{(index + 1).toString().padStart(2, '0')}</span>
+          {item.caption ?? item.alt}
+        </figcaption>
+      </figure>
+    ))
+  }
+</div>
+
+<style>
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+    gap: var(--s-3);
+  }
+
+  @media (width < 40rem) {
+    .gallery {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .gallery__caption {
+    display: flex;
+    gap: var(--s-2);
+    margin-block-start: var(--s-2);
+    color: var(--dust);
+    line-height: 1.5;
+    text-transform: none;
+    letter-spacing: 0.04em;
+  }
+
+  .gallery__index {
+    color: var(--sulfur);
+    flex: none;
+  }
+</style>

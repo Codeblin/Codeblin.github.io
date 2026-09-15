@@ -1,0 +1,65 @@
+---
+import { renderInline, type Block } from '@codeblin/content';
+import Frame from '~/components/Frame.astro';
+import type { RecordKind } from '~/lib/media.ts';
+
+interface Props {
+  block: Extract<Block, { type: 'image' }>;
+  kind: RecordKind;
+  slug: string;
+}
+
+const { block, kind, slug } = Astro.props;
+const caption = block.caption ? renderInline(block.caption) : null;
+---
+
+<figure class="image" data-width={block.width}>
+  <Frame
+    kind={kind}
+    slug={slug}
+    src={block.src}
+    alt={block.alt}
+    duotone={block.duotone}
+    sizes={
+      block.width === 'bleed'
+        ? '100vw'
+        : block.width === 'wide'
+          ? '(min-width: 75rem) 68rem, 100vw'
+          : '(min-width: 60rem) 44rem, 100vw'
+    }
+  />
+  {caption && <figcaption class="image__caption label" set:html={caption} />}
+</figure>
+
+<style>
+  /*
+   * Three widths. `column` sits in the measure, `wide` breaks out of it, and
+   * `bleed` runs the full grid — used when the screenshot is the argument.
+   */
+  .image[data-width="wide"] {
+    inline-size: min(var(--wide-width, 64rem), 100%);
+    margin-inline: calc((var(--measure) - min(var(--wide-width, 64rem), 100%)) / 2);
+  }
+
+  @media (width < 75rem) {
+    .image[data-width="wide"] {
+      margin-inline: 0;
+      inline-size: 100%;
+    }
+  }
+
+  .image[data-width="bleed"] {
+    inline-size: 100%;
+  }
+
+  .image__caption {
+    margin-block-start: var(--s-3);
+    color: var(--dust);
+    line-height: 1.6;
+    max-inline-size: 60ch;
+  }
+
+  .image__caption :global(a) {
+    color: var(--ash);
+  }
+</style>

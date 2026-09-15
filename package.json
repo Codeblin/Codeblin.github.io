@@ -1,0 +1,33 @@
+{
+  "name": "codeblin",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "CODEBLIN — a personal security research publication and its local authoring instrument.",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "npm run dev --workspace @codeblin/web",
+    "dev:cms": "npm run dev --workspace @codeblin/cms",
+    "build": "npm run fonts && npm run grain && npm run build --workspace @codeblin/web",
+    "preview": "npm run preview --workspace @codeblin/web",
+    "test": "tsx --test packages/content/test/round-trip.test.ts packages/content/test/rendering.test.ts",
+    "typecheck": "tsc --noEmit -p packages/content && tsc --noEmit -p packages/tokens && tsc --noEmit -p apps/web && tsc --noEmit -p apps/cms",
+    "fonts": "node scripts/build-fonts.mjs",
+    "grain": "node scripts/build-grain.mjs",
+    "content:validate": "tsx scripts/content-validate.mjs",
+    "content:fmt": "tsx scripts/content-fmt.mjs",
+    "new:post": "tsx scripts/new-post.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.0",
+    "tsx": "^4.21.0",
+    "typescript": "^7.0.2"
+  }
+}

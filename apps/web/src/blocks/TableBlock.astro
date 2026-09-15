@@ -1,0 +1,89 @@
+---
+import { renderInline, type Block } from '@codeblin/content';
+
+interface Props {
+  block: Extract<Block, { type: 'table' }>;
+}
+
+const { block } = Astro.props;
+const align = (index: number): string => block.align?.[index] ?? 'left';
+---
+
+<div class="table-scroll" tabindex="0" role="region" aria-label="Table">
+  <table class="table">
+    {
+      block.head.length > 0 && (
+        <thead>
+          <tr>
+            {block.head.map((cell, index) => (
+              <th scope="col" class="label" style={`text-align: ${align(index)}`}>
+                <Fragment set:html={renderInline(cell)} />
+              </th>
+            ))}
+          </tr>
+        </thead>
+      )
+    }
+    <tbody>
+      {
+        block.rows.map((row) => (
+          <tr>
+            {row.map((cell, index) => (
+              <td style={`text-align: ${align(index)}`}>
+                <Fragment set:html={renderInline(cell)} />
+              </td>
+            ))}
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+</div>
+
+<style>
+  .table-scroll {
+    overflow-x: auto;
+    border: var(--bw) solid var(--hair);
+    scrollbar-color: var(--hair-lit) transparent;
+    scrollbar-width: thin;
+  }
+
+  .table {
+    inline-size: 100%;
+    font-size: var(--fs-small);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .table th {
+    padding: var(--s-3) var(--s-4);
+    background: var(--tar);
+    border-block-end: var(--bw) solid var(--hair);
+    color: var(--ash);
+    white-space: nowrap;
+  }
+
+  .table td {
+    padding: var(--s-3) var(--s-4);
+    color: var(--ash);
+    vertical-align: baseline;
+  }
+
+  .table tbody tr:nth-child(even) {
+    background: color-mix(in srgb, var(--carbon) 50%, transparent);
+  }
+
+  .table tbody tr + tr td {
+    border-block-start: var(--bw) solid color-mix(in srgb, var(--hair) 70%, transparent);
+  }
+
+  .table :global(code) {
+    white-space: nowrap;
+  }
+
+  @media (width < 48rem) {
+    .table-scroll {
+      margin-inline: calc(var(--page-gutter) * -1);
+      border-inline: 0;
+    }
+  }
+</style>

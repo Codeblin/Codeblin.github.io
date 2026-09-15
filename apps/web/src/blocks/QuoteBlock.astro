@@ -1,0 +1,66 @@
+---
+import { renderMarkdown, type Block } from '@codeblin/content';
+
+interface Props {
+  block: Extract<Block, { type: 'quote' }>;
+}
+
+const { block } = Astro.props;
+const html = renderMarkdown(block.body);
+---
+
+<figure class="quote">
+  <blockquote class="quote__body prose" cite={block.href} set:html={html} />
+  {
+    block.cite && (
+      <figcaption class="quote__cite label">
+        <span class="quote__rule" aria-hidden="true" />
+        {block.href ? (
+          <a href={block.href} rel="noopener noreferrer">
+            {block.cite}
+          </a>
+        ) : (
+          block.cite
+        )}
+      </figcaption>
+    )
+  }
+</figure>
+
+<style>
+  .quote {
+    padding-inline-start: var(--s-6);
+    border-inline-start: 2px solid var(--sulfur);
+  }
+
+  .quote__body {
+    font-size: calc(var(--fs-body) * 1.12);
+    line-height: 1.6;
+    color: var(--bone);
+    font-style: italic;
+  }
+
+  .quote__cite {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    margin-block-start: var(--s-4);
+    color: var(--dust);
+  }
+
+  .quote__rule {
+    inline-size: var(--s-6);
+    block-size: 1px;
+    background: var(--ghost);
+    flex: none;
+  }
+
+  .quote__cite a {
+    text-decoration: none;
+  }
+
+  .quote__cite a:hover,
+  .quote__cite a:focus-visible {
+    color: var(--sulfur);
+  }
+</style>

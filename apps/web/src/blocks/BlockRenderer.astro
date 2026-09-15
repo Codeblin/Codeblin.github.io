@@ -1,0 +1,108 @@
+---
+import type { Block, BlockType } from '@codeblin/content';
+import type { RecordKind } from '~/lib/media.ts';
+
+import Callout from './Callout.astro';
+import CodeBlock from './CodeBlock.astro';
+import CommandBlock from './CommandBlock.astro';
+import DiagramBlock from './DiagramBlock.astro';
+import Divider from './Divider.astro';
+import EmbedBlock from './EmbedBlock.astro';
+import FileTree from './FileTree.astro';
+import FindingBlock from './FindingBlock.astro';
+import Gallery from './Gallery.astro';
+import Heading from './Heading.astro';
+import HttpBlock from './HttpBlock.astro';
+import ImageBlock from './ImageBlock.astro';
+import ListBlock from './ListBlock.astro';
+import Prose from './Prose.astro';
+import QuoteBlock from './QuoteBlock.astro';
+import TableBlock from './TableBlock.astro';
+import TerminalBlock from './TerminalBlock.astro';
+import VideoBlock from './VideoBlock.astro';
+
+export interface Props {
+  blocks: readonly Block[];
+  /** Needed by image blocks to resolve media against the record directory. */
+  kind: RecordKind;
+  slug: string;
+  /** Containers render their children one level in, with tighter spacing. */
+  nested?: boolean;
+}
+
+const { blocks, kind, slug, nested = false } = Astro.props;
+
+/**
+ * Exhaustiveness guard for the block registry.
+ *
+ * Adding a member to the `Block` union without adding a branch below is a
+ * compile error here rather than a silently dropped block at runtime — see
+ * CONTENT_MODEL.md §4.
+ */
+const RENDERED: Record<BlockType, true> = {
+  prose: true,
+  heading: true,
+  code: true,
+  terminal: true,
+  http: true,
+  image: true,
+  gallery: true,
+  quote: true,
+  table: true,
+  list: true,
+  filetree: true,
+  command: true,
+  embed: true,
+  video: true,
+  diagram: true,
+  divider: true,
+  finding: true,
+  callout: true,
+};
+void RENDERED;
+---
+
+<div class="blocks" data-nested={nested ? '' : undefined}>
+  {
+    blocks.map((block) => (
+      <Fragment>
+        {block.type === 'prose' && <Prose block={block} />}
+        {block.type === 'heading' && <Heading block={block} />}
+        {block.type === 'code' && <CodeBlock block={block} />}
+        {block.type === 'terminal' && <TerminalBlock block={block} />}
+        {block.type === 'http' && <HttpBlock block={block} />}
+        {block.type === 'image' && <ImageBlock block={block} kind={kind} slug={slug} />}
+        {block.type === 'gallery' && <Gallery block={block} kind={kind} slug={slug} />}
+        {block.type === 'quote' && <QuoteBlock block={block} />}
+        {block.type === 'table' && <TableBlock block={block} />}
+        {block.type === 'list' && <ListBlock block={block} />}
+        {block.type === 'filetree' && <FileTree block={block} />}
+        {block.type === 'command' && <CommandBlock block={block} />}
+        {block.type === 'embed' && <EmbedBlock block={block} />}
+        {block.type === 'video' && <VideoBlock block={block} kind={kind} slug={slug} />}
+        {block.type === 'diagram' && <DiagramBlock block={block} />}
+        {block.type === 'divider' && <Divider block={block} />}
+        {block.type === 'finding' && <FindingBlock block={block} kind={kind} slug={slug} />}
+        {block.type === 'callout' && <Callout block={block} kind={kind} slug={slug} />}
+      </Fragment>
+    ))
+  }
+</div>
+
+<style>
+  /*
+   * One rhythm for the whole body. Blocks never set their own outer margin,
+   * so a new block type cannot break the vertical spacing.
+   */
+  .blocks {
+    display: flow-root;
+  }
+
+  .blocks > :global(* + *) {
+    margin-block-start: var(--s-6);
+  }
+
+  .blocks[data-nested] > :global(* + *) {
+    margin-block-start: var(--s-4);
+  }
+</style>

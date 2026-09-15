@@ -1,0 +1,75 @@
+/*
+ * SUBSTRATE — base layer for the publication.
+ *
+ * Element defaults and the page frame. Component-specific styling stays with
+ * its component; nothing here knows about a card or a masthead.
+ */
+
+@layer base {
+  html {
+    background: var(--void);
+    /* Keeps the sticky masthead from covering an anchor target. */
+    scroll-padding-block-start: calc(var(--masthead-h) + var(--s-8));
+  }
+
+  body {
+    --masthead-h: 2.75rem;
+
+    background-color: var(--void);
+    background-image: url("/grain.png");
+    background-repeat: repeat;
+    background-size: 128px 128px;
+    color: var(--bone);
+    font-family: var(--font-body);
+    font-size: var(--fs-body);
+    font-weight: var(--w-body);
+    line-height: var(--lh-body);
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+  }
+
+  @media (width < 48rem) {
+    body {
+      --masthead-h: 2.5rem;
+
+      padding: 4px 4px calc(3.5rem + env(safe-area-inset-bottom, 0px) + 4px);
+    }
+  }
+
+  main {
+    flex: 1;
+  }
+
+  a {
+    color: inherit;
+    text-decoration-color: var(--ghost);
+    text-underline-offset: 0.22em;
+    text-decoration-thickness: from-font;
+  }
+
+  strong,
+  b {
+    font-weight: var(--w-semibold);
+  }
+
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: var(--font-code);
+    font-size: var(--fs-code);
+    font-variant-ligatures: none;
+  }
+
+  hr {
+    block-size: 0;
+    border: 0;
+    border-block-start: var(--bw) solid var(--hair);
+  }
+
+  ::placeholder {
+    color: var(--dust);
+    opacity: 1;
+  }
+}

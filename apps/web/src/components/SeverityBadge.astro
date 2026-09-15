@@ -1,0 +1,51 @@
+---
+import type { Severity } from '@codeblin/content';
+
+interface Props {
+  severity: Severity;
+  /** `solid` fills the badge; `edge` outlines it, for dense listings. */
+  variant?: 'solid' | 'edge';
+}
+
+const { severity, variant = 'solid' } = Astro.props;
+---
+
+<span class="severity micro" data-severity={severity} data-variant={variant}>
+  {severity}
+</span>
+
+<style>
+  .severity {
+    --tone: var(--sev-info);
+
+    display: inline-block;
+    padding: 3px var(--s-2);
+    line-height: 1.3;
+    letter-spacing: 0.2em;
+    text-indent: 0.2em;
+  }
+
+  .severity[data-severity="low"] {
+    --tone: var(--sev-low);
+  }
+  .severity[data-severity="medium"] {
+    --tone: var(--sev-medium);
+  }
+  .severity[data-severity="high"] {
+    --tone: var(--sev-high);
+  }
+  .severity[data-severity="critical"] {
+    --tone: var(--sev-critical);
+  }
+
+  .severity[data-variant="solid"] {
+    background: var(--tone);
+    color: var(--void);
+    font-weight: 700;
+  }
+
+  .severity[data-variant="edge"] {
+    border: var(--bw) solid color-mix(in srgb, var(--tone) 55%, transparent);
+    color: var(--tone);
+  }
+</style>

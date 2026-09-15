@@ -1,0 +1,96 @@
+---
+import { listPosts, readTaxonomy } from '@codeblin/content';
+
+import ArticleCard from '~/components/ArticleCard.astro';
+import PageHeader from '~/components/PageHeader.astro';
+import Base from '~/layouts/Base.astro';
+
+const posts = listPosts();
+const { categories } = readTaxonomy();
+
+const counts = new Map<string, number>();
+for (const post of posts) {
+  counts.set(post.frontmatter.category, (counts.get(post.frontmatter.category) ?? 0) + 1);
+}
+---
+
+<Base
+  title="Research"
+  description="Every published article: Android internals, application security, reverse engineering and malware analysis."
+>
+  <PageHeader
+    eyebrow="INDEX 0x01"
+    title="Research"
+    meta={`${posts.length} RECORDS`}
+    lede="Long-form write-ups of work actually done. Findings, transcripts and the reasoning between them."
+  />
+
+  <nav class="filters shell" aria-label="Filter by category">
+    <span class="filters__label label">Categories</span>
+    <ul role="list">
+      {
+        categories.map((category) => (
+          <li>
+            <a class="filters__item label" href={`/categories/${category.slug}/`}>
+              {category.name}
+              <span class="filters__count micro">{counts.get(category.slug) ?? 0}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
+
+  <div class="shell listing">
+    {posts.map((post) => <ArticleCard post={post} revealGroup="research" />)}
+  </div>
+</Base>
+
+<style>
+  .filters {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: var(--s-3) var(--s-4);
+    margin-block-end: var(--s-8);
+  }
+
+  .filters__label {
+    color: var(--dust);
+  }
+
+  .filters ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .filters__item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--s-2);
+    padding: var(--s-2) var(--s-3);
+    border: var(--bw) solid var(--hair);
+    color: var(--ash);
+    text-decoration: none;
+  }
+
+  .filters__item:hover,
+  .filters__item:focus-visible {
+    color: var(--bone);
+    border-color: var(--hair-lit);
+  }
+
+  .filters__count {
+    color: var(--sulfur);
+  }
+
+  .listing {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+    gap: var(--grid-gap);
+  }
+</style>

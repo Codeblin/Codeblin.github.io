@@ -1,0 +1,111 @@
+---
+import type { Block } from '@codeblin/content';
+import CopyButton from '~/components/CopyButton.astro';
+import { highlightCode, languageLabel } from '~/lib/highlight.ts';
+
+interface Props {
+  block: Extract<Block, { type: 'code' }>;
+}
+
+const { block } = Astro.props;
+
+const html = await highlightCode(block.source, {
+  lang: block.lang,
+  highlight: block.highlight ?? [],
+  startLine: block.startLine ?? 1,
+});
+
+const sourceId = `code-${block.id}`;
+const showLineNumbers = block.source.split('\n').length > 3;
+---
+
+<figure class="code" data-numbered={showLineNumbers ? '' : undefined}>
+  <div class="code__bar">
+    <span class="code__lang micro">{languageLabel(block.lang)}</span>
+    {block.filename && <span class="code__file label">{block.filename}</span>}
+    <CopyButton target={sourceId} label="Copy code" />
+  </div>
+  <div class="code__body" id={sourceId} set:html={html} />
+</figure>
+
+<style>
+  .code {
+    border: var(--bw) solid var(--hair);
+    background: var(--slate);
+    overflow: hidden;
+  }
+
+  .code__bar {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    padding: var(--s-2) var(--s-3);
+    border-block-end: var(--bw) solid var(--hair);
+    background: var(--tar);
+  }
+
+  .code__lang {
+    color: var(--sulfur);
+  }
+
+  .code__file {
+    color: var(--ash);
+    margin-inline-end: auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Without a filename the copy control still belongs on the right edge. */
+  .code__lang:last-of-type {
+    margin-inline-end: auto;
+  }
+
+  .code__body :global(pre) {
+    margin: 0;
+    padding: var(--s-4) 0;
+    overflow-x: auto;
+    font-size: var(--fs-code);
+    line-height: var(--lh-code);
+    background: transparent !important;
+    scrollbar-color: var(--hair-lit) transparent;
+    scrollbar-width: thin;
+  }
+
+  .code__body :global(code) {
+    display: block;
+    inline-size: fit-content;
+    min-inline-size: 100%;
+  }
+
+  .code__body :global(.line) {
+    display: block;
+    padding-inline: var(--s-4);
+    border-inline-start: 2px solid transparent;
+  }
+
+  /* Emphasised lines: an accent edge and a lift, never a colour change on the
+     code itself, which would fight the syntax theme. */
+  .code__body :global(.line[data-marked]) {
+    background: var(--sulfur-veil);
+    border-inline-start-color: var(--sulfur);
+  }
+
+  [data-numbered] .code__body :global(.line)::before {
+    content: attr(data-line);
+    display: inline-block;
+    inline-size: 2.25em;
+    margin-inline-end: var(--s-4);
+    text-align: end;
+    color: var(--ghost);
+    user-select: none;
+  }
+
+  @media (width < 48rem) {
+    /* Code breaks the reading margin on narrow screens; DESIGN.md §9. */
+    .code {
+      margin-inline: calc(var(--page-gutter) * -1);
+      border-inline: 0;
+    }
+  }
+</style>

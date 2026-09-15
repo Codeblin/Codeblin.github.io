@@ -1,0 +1,78 @@
+---
+interface Props {
+  /** Rendered after a slash marker, uppercase, in label mono. */
+  title: string;
+  /** Optional count or status shown at the right edge. */
+  meta?: string;
+  href?: string;
+  linkLabel?: string;
+}
+
+const { title, meta, href, linkLabel = 'All' } = Astro.props;
+---
+
+<div class="section-head">
+  <h2 class="section-head__title label">
+    <span class="section-head__slash" aria-hidden="true">/</span>
+    {title}
+  </h2>
+  <span class="section-head__leader" aria-hidden="true"></span>
+  {meta && <span class="section-head__meta micro">{meta}</span>}
+  {
+    href && (
+      <a class="section-head__link label" href={href}>
+        {linkLabel}
+        <span aria-hidden="true"> →</span>
+      </a>
+    )
+  }
+</div>
+
+<style>
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-3);
+    padding-block-start: var(--s-4);
+    margin-block-end: var(--s-6);
+    border-block-start: var(--bw) solid var(--hair);
+  }
+
+  .section-head__title {
+    display: flex;
+    gap: var(--s-2);
+    color: var(--bone);
+    flex-shrink: 0;
+  }
+
+  .section-head__slash {
+    color: var(--sulfur);
+  }
+
+  .section-head__leader {
+    flex: 1 1 auto;
+    block-size: 1px;
+    min-inline-size: 1rem;
+    background-image: repeating-linear-gradient(
+      90deg,
+      var(--ghost) 0 0.28rem,
+      transparent 0.28rem 0.5rem
+    );
+    align-self: center;
+  }
+
+  .section-head__meta {
+    color: var(--ghost);
+    flex-shrink: 0;
+  }
+
+  .section-head__link {
+    color: var(--ash);
+    text-decoration: none;
+  }
+
+  .section-head__link:hover,
+  .section-head__link:focus-visible {
+    color: var(--sulfur);
+  }
+</style>

@@ -1,0 +1,81 @@
+---
+interface Props {
+  /** Small marker above the title, e.g. `INDEX 0x02`. */
+  eyebrow: string;
+  title: string;
+  lede?: string;
+  meta?: string;
+}
+
+const { eyebrow, title, lede, meta } = Astro.props;
+---
+
+<header class="page-head shell">
+  <p class="page-head__cap micro">
+    <span class="page-head__box" aria-hidden="true">┌</span>
+    <span class="page-head__slash" aria-hidden="true">/</span>
+    <span>{eyebrow}</span>
+    {meta && <span class="page-head__meta">— {meta}</span>}
+    <span class="page-head__leader" aria-hidden="true"></span>
+    <span class="page-head__box" aria-hidden="true">┐</span>
+  </p>
+  <h1 class="page-head__title display">{title}</h1>
+  {lede && <p class="page-head__lede">{lede}</p>}
+</header>
+
+<style>
+  .page-head {
+    display: grid;
+    gap: var(--s-4);
+    padding-block: var(--s-12) var(--s-8);
+    border-block-end: var(--bw) solid var(--sulfur-edge);
+    margin-block-end: var(--s-8);
+  }
+
+  .page-head__cap {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    color: var(--dust);
+    min-inline-size: 0;
+  }
+
+  .page-head__box {
+    color: var(--sulfur-edge);
+    flex-shrink: 0;
+  }
+
+  .page-head__slash {
+    color: var(--sulfur);
+    flex-shrink: 0;
+  }
+
+  .page-head__meta {
+    color: var(--ghost);
+  }
+
+  .page-head__leader {
+    flex: 1 1 auto;
+    block-size: 1px;
+    min-inline-size: 1.5rem;
+    background-image: repeating-linear-gradient(
+      90deg,
+      var(--hair) 0 0.35rem,
+      transparent 0.35rem 0.6rem
+    );
+    transform-origin: left;
+    animation: cb-draw-x var(--dur-5) var(--ease-enter) both;
+  }
+
+  .page-head__title {
+    font-size: var(--fs-display-2);
+    max-inline-size: 20ch;
+    color: var(--bone);
+  }
+
+  .page-head__lede {
+    max-inline-size: 58ch;
+    color: var(--ash);
+    line-height: 1.65;
+  }
+</style>

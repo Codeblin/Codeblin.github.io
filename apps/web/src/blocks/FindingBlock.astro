@@ -1,0 +1,126 @@
+---
+import type { Block } from '@codeblin/content';
+import BlockRenderer from './BlockRenderer.astro';
+import DotLeader from '~/components/DotLeader.astro';
+import SeverityBadge from '~/components/SeverityBadge.astro';
+import type { RecordKind } from '~/lib/media.ts';
+
+interface Props {
+  block: Extract<Block, { type: 'finding' }>;
+  kind: RecordKind;
+  slug: string;
+}
+
+const { block, kind, slug } = Astro.props;
+
+const fields = [
+  block.findingId ? { key: 'ID', value: block.findingId } : null,
+  block.cwe ? { key: 'CWE', value: block.cwe } : null,
+  block.cvss ? { key: 'CVSS', value: block.cvss } : null,
+  block.status ? { key: 'STATUS', value: block.status.toUpperCase() } : null,
+].filter((field): field is { key: string; value: string } => field !== null);
+---
+
+<section class="finding notched" data-severity={block.severity}>
+  <header class="finding__head">
+    <p class="finding__tag micro">FINDING</p>
+    <SeverityBadge severity={block.severity} />
+  </header>
+
+  {block.title && <h3 class="finding__title">{block.title}</h3>}
+
+  {
+    fields.length > 0 && (
+      <dl class="finding__fields">
+        {fields.map((field) => (
+          <DotLeader label={field.key} value={field.value} />
+        ))}
+      </dl>
+    )
+  }
+
+  <div class="finding__body">
+    <BlockRenderer blocks={block.body} kind={kind} slug={slug} nested />
+  </div>
+</section>
+
+<style>
+  /*
+   * The severity colour appears exactly twice: as the left edge and as the
+   * badge. Everywhere else the block uses the neutral palette, so a page of
+   * findings does not turn into a colour chart.
+   */
+  .finding {
+    --edge: var(--sev-info);
+    --notch: 14px;
+
+    position: relative;
+    padding: var(--s-5) var(--s-6);
+    background: var(--tar);
+    border: var(--bw) solid var(--hair);
+    box-shadow: inset 3px 0 0 var(--edge);
+  }
+
+  .finding[data-severity="low"] {
+    --edge: var(--sev-low);
+  }
+  .finding[data-severity="medium"] {
+    --edge: var(--sev-medium);
+  }
+  .finding[data-severity="high"] {
+    --edge: var(--sev-high);
+  }
+  .finding[data-severity="critical"] {
+    --edge: var(--sev-critical);
+  }
+
+  .finding__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-4);
+    padding-block-end: var(--s-3);
+    border-block-end: var(--bw) solid var(--hair);
+  }
+
+  .finding__tag {
+    color: var(--edge);
+    letter-spacing: 0.24em;
+  }
+
+  .finding__title {
+    margin-block-start: var(--s-4);
+    font-family: var(--font-display);
+    font-weight: var(--w-display);
+    font-size: var(--fs-h2);
+    line-height: var(--lh-heading);
+    letter-spacing: var(--tr-heading);
+    color: var(--bone);
+  }
+
+  .finding__fields {
+    margin-block-start: var(--s-4);
+    display: grid;
+    gap: var(--s-1);
+    max-inline-size: 34rem;
+  }
+
+  .finding__body {
+    margin-block-start: var(--s-5);
+    padding-block-start: var(--s-4);
+    border-block-start: var(--bw) solid var(--hair);
+    color: var(--ash);
+  }
+
+  .finding__body :global(.prose) {
+    color: var(--ash);
+    font-size: var(--fs-small);
+  }
+
+  @media (width < 48rem) {
+    .finding {
+      padding-inline: var(--s-4);
+      clip-path: none;
+    }
+  }
+</style>

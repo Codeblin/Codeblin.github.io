@@ -1,0 +1,44 @@
+---
+import type { Block } from '@codeblin/content';
+
+interface Props {
+  block: Extract<Block, { type: 'diagram' }>;
+}
+
+const { block } = Astro.props;
+---
+
+<figure class="diagram">
+  <pre class="diagram__body" tabindex="0" role="img" aria-label={block.caption ?? 'Diagram'}>{
+    block.source.replace(/\n+$/, '')
+  }</pre>
+  {block.caption && <figcaption class="diagram__caption label">{block.caption}</figcaption>}
+</figure>
+
+<style>
+  /*
+   * Monospaced ASCII rather than a rendering library: it diffs cleanly, costs
+   * nothing to ship, and matches the rest of the visual language. The caption
+   * is the accessible description, since the art itself is decorative to a
+   * screen reader.
+   */
+  .diagram__body {
+    margin: 0;
+    padding: var(--s-6) var(--s-4);
+    overflow-x: auto;
+    border: var(--bw) solid var(--hair);
+    background: var(--tar);
+    color: var(--ash);
+    font-size: var(--fs-code);
+    line-height: 1.55;
+    text-align: center;
+    scrollbar-width: thin;
+    scrollbar-color: var(--hair-lit) transparent;
+  }
+
+  .diagram__caption {
+    margin-block-start: var(--s-3);
+    color: var(--dust);
+    line-height: 1.6;
+  }
+</style>

@@ -1,0 +1,249 @@
+/*
+ * SUBSTRATE — motion.
+ *
+ * Cross-document view transitions name only the morphing title — never
+ * `main`, sticky chrome, or a grid of covers. Prefetch stays off: compiling
+ * sibling routes on hover restyles the current page.
+ *
+ * What is allowed:
+ *   - transform on small, already-painted overlays (scan, ticker, pip)
+ *   - visibility steps on the 1ch caret (layout is unchanged)
+ *   - stroke-dashoffset on a 24px SVG, one-shot, not in sticky chrome
+ *   - decode of short label-mono strings
+ *   - view-transition-name on one article/project headline, plus a listing
+ *     title armed at click / pageswap / pagereveal
+ *
+ * What is not:
+ *   - opacity: 0 on cards or headlines
+ *   - transition on sticky chrome or first-hover layer promotion
+ *   - filter, backdrop-filter, feTurbulence, animation-timeline
+ *   - translating a full-viewport layer
+ *   - permanent view-transition-name on listing cards
+ */
+
+@layer base {
+  @keyframes cb-blink {
+    0%,
+    46% {
+      visibility: visible;
+    }
+
+    47%,
+    100% {
+      visibility: hidden;
+    }
+  }
+
+  @keyframes cb-ticker {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
+
+    to {
+      transform: translate3d(-50%, 0, 0);
+    }
+  }
+
+  @keyframes cb-draw-x {
+    from {
+      transform: scaleX(0);
+    }
+
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  @keyframes cb-draw-stroke {
+    from {
+      stroke-dashoffset: 1;
+    }
+
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes cb-pulse {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+
+    50% {
+      transform: scale(1.35);
+    }
+  }
+
+  @keyframes cb-draw-y {
+    from {
+      transform: scaleY(0);
+    }
+
+    to {
+      transform: scaleY(1);
+    }
+  }
+
+  @keyframes cb-search-scan {
+    from {
+      transform: translate3d(-120%, 0, 0);
+    }
+
+    to {
+      transform: translate3d(280%, 0, 0);
+    }
+  }
+
+  @keyframes cb-hit-in {
+    from {
+      transform: translate3d(-0.65rem, 0, 0);
+    }
+
+    to {
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes cb-glitch {
+    0%,
+    90%,
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+
+    91% {
+      transform: translate3d(-3px, 0, 0);
+    }
+
+    93% {
+      transform: translate3d(2px, 0, 0);
+    }
+  }
+
+  @keyframes cb-glitch-hover {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+      text-shadow: none;
+    }
+
+    22% {
+      transform: translate3d(-3px, 0, 0);
+      text-shadow: 2px 0 var(--sulfur);
+    }
+
+    48% {
+      transform: translate3d(3px, 0, 0);
+      text-shadow: -2px 0 var(--bone);
+    }
+
+    72% {
+      transform: translate3d(-1px, 0, 0);
+      text-shadow: none;
+    }
+  }
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .masthead__link:hover,
+    .masthead__find:hover,
+    .mobile-bar a:hover,
+    .footer__link:hover,
+    .toc__list a:hover,
+    .card:hover .card__title,
+    .project:hover .project__name,
+    .row:hover .row__title,
+    .topic:hover .topic__name,
+    .hit:hover .hit__title {
+      animation: cb-glitch-hover 280ms steps(2, jump-none);
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .toc__list a[data-current] {
+      animation: cb-glitch-hover 280ms steps(2, jump-none);
+    }
+
+    .article__title {
+      view-transition-name: vt-post-title;
+    }
+
+    .project-page__name {
+      view-transition-name: vt-project-name;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cb-loop,
+    .cb-boot,
+    .wordmark__cursor,
+    .project__status[data-tone="live"] .project__pip,
+    .notfound__code,
+    .page-head__leader,
+    .hero__word::after,
+    .mobile-bar,
+    .search__form::before,
+    .search__form::after,
+    .search__caret,
+    .search__prompt,
+    .hit,
+    .hit__link::before,
+    .search__suggestions a {
+      animation: none !important;
+      transition: none !important;
+    }
+
+    .sigil[data-motion] .sigil__c {
+      animation: none !important;
+      stroke-dashoffset: 0;
+    }
+  }
+}
+
+@keyframes cb-vt-root-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes cb-vt-root-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@view-transition {
+  navigation: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @view-transition {
+    navigation: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root) {
+    animation: cb-vt-root-out 220ms var(--ease-std) both;
+  }
+
+  ::view-transition-new(root) {
+    animation: cb-vt-root-in 280ms var(--ease-enter) both;
+  }
+
+  ::view-transition-group(vt-post-title),
+  ::view-transition-group(vt-project-name) {
+    animation-duration: 480ms;
+    animation-timing-function: var(--ease-enter);
+    z-index: 8;
+  }
+
+  ::view-transition-old(vt-post-title),
+  ::view-transition-new(vt-post-title),
+  ::view-transition-old(vt-project-name),
+  ::view-transition-new(vt-project-name) {
+    height: auto;
+    overflow: clip;
+    mix-blend-mode: normal;
+  }
+}

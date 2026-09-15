@@ -1,0 +1,73 @@
+---
+import { renderInline, type Block } from '@codeblin/content';
+
+interface Props {
+  block: Extract<Block, { type: 'list' }>;
+}
+
+const { block } = Astro.props;
+const Tag = block.ordered ? 'ol' : 'ul';
+---
+
+<Tag class="list" data-ordered={block.ordered ? '' : undefined}>
+  {block.items.map((item) => <li set:html={renderInline(item)} />)}
+</Tag>
+
+<style>
+  .list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: var(--s-3);
+    counter-reset: list-item-number;
+  }
+
+  .list li {
+    position: relative;
+    padding-inline-start: var(--s-8);
+    color: var(--bone);
+    line-height: var(--lh-body);
+  }
+
+  /* Unordered items take a short accent rule; ordered items take a
+     zero-padded index in label mono, matching the archive's counting. */
+  .list:not([data-ordered]) li::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0;
+    inset-block-start: 0.78em;
+    inline-size: var(--s-4);
+    block-size: 1px;
+    background: var(--sulfur);
+  }
+
+  .list[data-ordered] li {
+    counter-increment: list-item-number;
+  }
+
+  .list[data-ordered] li::before {
+    content: counter(list-item-number, decimal-leading-zero);
+    position: absolute;
+    inset-inline-start: 0;
+    font-family: var(--font-label);
+    font-size: var(--fs-micro);
+    letter-spacing: var(--tr-micro);
+    color: var(--sulfur);
+    line-height: 2.5;
+  }
+
+  .list :global(code) {
+    white-space: nowrap;
+  }
+
+  .list :global(a) {
+    text-decoration: underline;
+    text-decoration-color: var(--ghost);
+    text-underline-offset: 0.2em;
+  }
+
+  .list :global(a:hover) {
+    color: var(--sulfur);
+  }
+</style>

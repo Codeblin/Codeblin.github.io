@@ -1,0 +1,98 @@
+---
+import type { Block } from '@codeblin/content';
+import BlockRenderer from './BlockRenderer.astro';
+import type { RecordKind } from '~/lib/media.ts';
+
+interface Props {
+  block: Extract<Block, { type: 'callout' }>;
+  kind: RecordKind;
+  slug: string;
+}
+
+const { block, kind, slug } = Astro.props;
+
+const TONE_LABEL = {
+  note: 'NOTE',
+  tip: 'TIP',
+  warning: 'WARNING',
+  danger: 'DANGER',
+} as const;
+---
+
+<aside class="callout" data-tone={block.tone}>
+  <div class="callout__gutter" aria-hidden="true">
+    <span class="callout__tone micro">{TONE_LABEL[block.tone]}</span>
+  </div>
+  <div class="callout__content">
+    {block.title && <p class="callout__title">{block.title}</p>}
+    <BlockRenderer blocks={block.body} kind={kind} slug={slug} nested />
+  </div>
+</aside>
+
+<style>
+  /*
+   * The tone label runs down the gutter rather than sitting in a coloured
+   * header bar, which keeps the block quiet enough to sit inside prose.
+   */
+  .callout {
+    --tone: var(--ash);
+
+    display: grid;
+    grid-template-columns: 2.25rem minmax(0, 1fr);
+    border: var(--bw) solid var(--hair);
+    background: var(--tar);
+  }
+
+  .callout[data-tone="tip"] {
+    --tone: var(--sulfur);
+  }
+  .callout[data-tone="warning"] {
+    --tone: var(--sev-medium);
+  }
+  .callout[data-tone="danger"] {
+    --tone: var(--sev-critical);
+  }
+
+  .callout__gutter {
+    display: grid;
+    place-items: center;
+    padding-block: var(--s-4);
+    border-inline-end: var(--bw) solid var(--hair);
+    background: color-mix(in srgb, var(--tone) 7%, transparent);
+  }
+
+  .callout__tone {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    color: var(--tone);
+    letter-spacing: 0.22em;
+  }
+
+  .callout__content {
+    padding: var(--s-4) var(--s-5);
+  }
+
+  .callout__title {
+    font-family: var(--font-display);
+    font-weight: var(--w-semibold);
+    font-size: var(--fs-h3);
+    line-height: var(--lh-heading);
+    color: var(--bone);
+    margin-block-end: var(--s-2);
+  }
+
+  .callout__content :global(.prose) {
+    color: var(--ash);
+    font-size: var(--fs-small);
+  }
+
+  @media (width < 30rem) {
+    .callout {
+      grid-template-columns: 1.75rem minmax(0, 1fr);
+    }
+
+    .callout__content {
+      padding-inline: var(--s-4);
+    }
+  }
+</style>

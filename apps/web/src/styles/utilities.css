@@ -1,0 +1,170 @@
+/*
+ * SUBSTRATE — utilities.
+ *
+ * A deliberately short list. Each entry earns its place by appearing in three
+ * or more components; anything used twice stays local to its component.
+ */
+
+@layer utilities {
+  /* ── Page frame ───────────────────────────────────────────────────────── */
+
+  .shell {
+    inline-size: 100%;
+    max-inline-size: var(--page-max);
+    margin-inline: auto;
+    padding-inline: var(--page-gutter);
+  }
+
+  /* A rule that runs the full width of the page, not just the content. */
+  .bleed-rule {
+    border-block-start: var(--bw) solid var(--hair);
+  }
+
+  .measure {
+    max-inline-size: var(--measure);
+  }
+
+  .stack > * + * {
+    margin-block-start: var(--stack-gap, var(--s-4));
+  }
+
+  /* ── Typographic roles ────────────────────────────────────────────────── */
+
+  .label {
+    font-family: var(--font-label);
+    font-size: var(--fs-label);
+    font-weight: var(--w-medium);
+    line-height: var(--lh-label);
+    letter-spacing: var(--tr-label);
+    text-transform: uppercase;
+    color: var(--dust);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .micro {
+    font-family: var(--font-label);
+    font-size: var(--fs-micro);
+    font-weight: var(--w-medium);
+    line-height: var(--lh-label);
+    letter-spacing: var(--tr-micro);
+    text-transform: uppercase;
+    color: var(--dust);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .display {
+    font-family: var(--font-display);
+    font-weight: var(--w-display);
+    line-height: var(--lh-display);
+    letter-spacing: var(--tr-display);
+  }
+
+  .record-no {
+    font-family: var(--font-label);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.06em;
+  }
+
+  /* ── Geometry ─────────────────────────────────────────────────────────── */
+
+  .hairline {
+    border: var(--bw) solid var(--hair);
+    background: var(--tar);
+  }
+
+  /* Cut corners mark an instrument surface; prose containers stay square. */
+  .notched {
+    clip-path: polygon(
+      var(--notch) 0,
+      100% 0,
+      100% calc(100% - var(--notch)),
+      calc(100% - var(--notch)) 100%,
+      0 100%,
+      0 var(--notch)
+    );
+  }
+
+  /*
+   * Corner brackets. Colour only — no opacity, no scale, no transition.
+   * The first transform/opacity animation on a page promotes a compositor
+   * layer; Chromium then re-rasterises the whole document (and `text-wrap:
+   * balance` reflows every headline). That is the hover flicker.
+   */
+  .bracketed {
+    position: relative;
+  }
+
+  .bracketed::after {
+    --bracket-ink: transparent;
+    --mark: linear-gradient(var(--bracket-ink), var(--bracket-ink));
+
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      var(--mark) 0 0 / var(--bracket) var(--bracket-weight) no-repeat,
+      var(--mark) 0 0 / var(--bracket-weight) var(--bracket) no-repeat,
+      var(--mark) 100% 0 / var(--bracket) var(--bracket-weight) no-repeat,
+      var(--mark) 100% 0 / var(--bracket-weight) var(--bracket) no-repeat,
+      var(--mark) 0 100% / var(--bracket) var(--bracket-weight) no-repeat,
+      var(--mark) 0 100% / var(--bracket-weight) var(--bracket) no-repeat,
+      var(--mark) 100% 100% / var(--bracket) var(--bracket-weight) no-repeat,
+      var(--mark) 100% 100% / var(--bracket-weight) var(--bracket) no-repeat;
+  }
+
+  .bracketed:hover::after,
+  .bracketed:focus-within::after {
+    --bracket-ink: var(--sulfur);
+  }
+
+  /*
+   * Left rail. Instant scale — no transition. The bar is transform-only and
+   * already in the tree, so hover does not promote a new layer.
+   */
+  .hud-edge {
+    position: relative;
+  }
+
+  .hud-edge::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: -1px;
+    inline-size: 2px;
+    background: var(--sulfur);
+    transform: scaleY(0);
+    transform-origin: center;
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  .hud-edge:hover::before,
+  .hud-edge:focus-within::before {
+    transform: scaleY(1);
+  }
+
+  /* ── Accessibility ────────────────────────────────────────────────────── */
+
+  .visually-hidden {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* ── Reveal on scroll ─────────────────────────────────────────────────── */
+
+  /*
+   * `[data-reveal]` is still observed for stagger hooks, but unrevealed
+   * nodes stay fully visible. Hiding them with opacity/transform was the
+   * other half of the scroll flicker: every card popping in as the sticky
+   * masthead composited over it.
+   */
+}
+

@@ -1,0 +1,135 @@
+---
+import { listPosts, readTaxonomy } from '@codeblin/content';
+
+import PageHeader from '~/components/PageHeader.astro';
+import Base from '~/layouts/Base.astro';
+import { stampDate } from '~/lib/format.ts';
+
+const posts = listPosts();
+const { categories } = readTaxonomy();
+
+const rows = categories.map((category) => {
+  const entries = posts.filter((post) => post.frontmatter.category === category.slug);
+  return {
+    category,
+    count: entries.length,
+    latest: entries[0]?.frontmatter.publishedAt,
+  };
+});
+---
+
+<Base
+  title="Topics"
+  description="The subject areas this archive covers: Android internals, application security, reverse engineering and malware analysis."
+>
+  <PageHeader
+    eyebrow="TAXONOMY"
+    title="Topics"
+    meta={`${categories.length} CATEGORIES`}
+    lede="Every record belongs to exactly one category. Tags cut across them."
+  />
+
+  <ul class="shell topics" role="list">
+    {
+      rows.map(({ category, count, latest }, index) => (
+        <li class="topic" data-reveal="topics" style={`--i:${index}`}>
+          <a class="topic__link" href={`/categories/${category.slug}/`}>
+            <span class="topic__abbr micro">{category.abbr}</span>
+            <span class="topic__body">
+              <span class="topic__name display">{category.name}</span>
+              <span class="topic__desc">{category.description}</span>
+            </span>
+            <span class="topic__stats">
+              <span class="micro topic__count">
+                {String(count).padStart(2, '0')} {count === 1 ? 'RECORD' : 'RECORDS'}
+              </span>
+              <span class="micro topic__latest">{stampDate(latest)}</span>
+            </span>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</Base>
+
+<style>
+  .topics {
+    border-block-start: var(--bw) solid var(--hair);
+  }
+
+  .topic {
+    border-block-end: var(--bw) solid var(--hair);
+  }
+
+  .topic__link {
+    display: grid;
+    grid-template-columns: 4rem minmax(0, 1fr) auto;
+    gap: var(--s-6);
+    align-items: baseline;
+    padding: var(--s-6) var(--s-2);
+    text-decoration: none;
+  }
+
+  .topic__link:hover,
+  .topic__link:focus-visible {
+    background: var(--tar);
+  }
+
+  .topic__abbr {
+    color: var(--ghost);
+  }
+
+  .topic__link:hover .topic__abbr {
+    color: var(--sulfur);
+  }
+
+  .topic__body {
+    display: grid;
+    gap: var(--s-2);
+    min-inline-size: 0;
+  }
+
+  .topic__name {
+    font-size: var(--fs-display-3);
+    color: var(--bone);
+    line-height: 1.05;
+  }
+
+  .topic__desc {
+    color: var(--ash);
+    font-size: var(--fs-small);
+    line-height: 1.55;
+    max-inline-size: 54ch;
+  }
+
+  .topic__stats {
+    display: grid;
+    gap: var(--s-1);
+    justify-items: end;
+    text-align: end;
+  }
+
+  .topic__count {
+    color: var(--dust);
+  }
+
+  .topic__latest {
+    color: var(--ghost);
+  }
+
+  @media (width < 48rem) {
+    .topic__link {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--s-3);
+      padding-block: var(--s-5);
+    }
+
+    .topic__stats {
+      justify-items: start;
+      text-align: start;
+      grid-auto-flow: column;
+      justify-content: start;
+      gap: var(--s-3);
+    }
+  }
+</style>

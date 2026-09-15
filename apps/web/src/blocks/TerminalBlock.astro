@@ -1,0 +1,126 @@
+---
+import type { Block } from '@codeblin/content';
+import CopyButton from '~/components/CopyButton.astro';
+
+interface Props {
+  block: Extract<Block, { type: 'terminal' }>;
+}
+
+const { block } = Astro.props;
+const sourceId = `terminal-${block.id}`;
+const failed = block.exitCode !== undefined && block.exitCode !== 0;
+---
+
+<figure class="terminal notched" data-failed={failed ? '' : undefined}>
+  <div class="terminal__bar">
+    <span class="terminal__tag micro">SESSION</span>
+    {block.host && <span class="terminal__host label">{block.host}</span>}
+    {
+      block.exitCode !== undefined && (
+        <span class="terminal__exit micro">EXIT {block.exitCode}</span>
+      )
+    }
+    <CopyButton target={sourceId} label="Copy transcript" />
+  </div>
+
+  <pre class="terminal__body" id={sourceId} tabindex="0"><code>{
+    block.lines.map((line) => (
+      <span class="terminal__line" data-kind={line.kind}>
+        {line.kind === 'prompt' && <span class="terminal__prompt" aria-hidden="true">$ </span>}
+        {line.kind === 'comment' && <span class="terminal__hash" aria-hidden="true"># </span>}
+        {line.text}
+        {'\n'}
+      </span>
+    ))
+  }</code></pre>
+</figure>
+
+<style>
+  /*
+   * Chamfered, because a terminal is machinery. No typing animation: the
+   * transcript is evidence, and evidence does not perform.
+   */
+  .terminal {
+    border: var(--bw) solid var(--hair);
+    background: var(--slate);
+    --notch: 12px;
+  }
+
+  .terminal__bar {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    padding: var(--s-2) var(--s-3);
+    border-block-end: var(--bw) solid var(--hair);
+    background: var(--tar);
+  }
+
+  .terminal__tag {
+    color: var(--sulfur);
+  }
+
+  .terminal__host {
+    color: var(--ash);
+    margin-inline-end: auto;
+  }
+
+  .terminal__tag:last-of-type {
+    margin-inline-end: auto;
+  }
+
+  .terminal__exit {
+    color: var(--dust);
+  }
+
+  [data-failed] .terminal__exit {
+    color: var(--sev-high);
+  }
+
+  [data-failed] {
+    box-shadow: inset 2px 0 0 var(--sev-high);
+  }
+
+  .terminal__body {
+    margin: 0;
+    padding: var(--s-4);
+    overflow-x: auto;
+    font-size: var(--fs-code);
+    line-height: var(--lh-code);
+    scrollbar-color: var(--hair-lit) transparent;
+    scrollbar-width: thin;
+  }
+
+  .terminal__line {
+    display: block;
+    white-space: pre;
+  }
+
+  .terminal__line[data-kind="output"] {
+    color: var(--ash);
+  }
+
+  .terminal__line[data-kind="prompt"] {
+    color: var(--bone);
+  }
+
+  .terminal__line[data-kind="comment"] {
+    color: var(--dust);
+    font-style: italic;
+  }
+
+  .terminal__prompt {
+    color: var(--sulfur);
+  }
+
+  .terminal__hash {
+    color: var(--ghost);
+  }
+
+  @media (width < 48rem) {
+    .terminal {
+      margin-inline: calc(var(--page-gutter) * -1);
+      border-inline: 0;
+      clip-path: none;
+    }
+  }
+</style>

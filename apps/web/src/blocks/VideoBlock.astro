@@ -1,0 +1,52 @@
+---
+import type { Block } from '@codeblin/content';
+import { resolveImage, type RecordKind } from '~/lib/media.ts';
+
+interface Props {
+  block: Extract<Block, { type: 'video' }>;
+  kind: RecordKind;
+  slug: string;
+}
+
+const { block, kind, slug } = Astro.props;
+
+/**
+ * Video is served from the repository, never from a third party. The source
+ * path is a repository-relative content path, so it resolves to the same
+ * public URL the media directory is copied to at build time.
+ */
+const src = `/media/${kind}/${slug}/${block.src.replace('./media/', '')}`;
+const poster = block.poster ? resolveImage(kind, slug, block.poster) : null;
+const posterUrl =
+  poster && typeof poster.source !== 'string' ? poster.source.src : (poster?.source ?? undefined);
+---
+
+<figure class="video">
+  <div class="video__frame">
+    <video controls preload="none" poster={posterUrl} playsinline>
+      <source src={src} />
+      Your browser cannot play this file.
+      <a href={src} download>Download it instead.</a>
+    </video>
+  </div>
+  {block.caption && <figcaption class="video__caption label">{block.caption}</figcaption>}
+</figure>
+
+<style>
+  .video__frame {
+    border: var(--bw) solid var(--hair);
+    background: var(--slate);
+    overflow: hidden;
+  }
+
+  .video__frame video {
+    inline-size: 100%;
+    display: block;
+  }
+
+  .video__caption {
+    margin-block-start: var(--s-3);
+    color: var(--dust);
+    line-height: 1.6;
+  }
+</style>

@@ -1,0 +1,13 @@
+{
+  "name": "@codeblin/tokens",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "SUBSTRATE design tokens — the single source of truth for colour, type, space and motion.",
+  "exports": {
+    "./tokens.css": "./src/tokens.css",
+    "./reset.css": "./src/reset.css",
+    "./fonts.css": "./src/fonts.css",
+    ".": "./src/index.ts"
+  }
+}

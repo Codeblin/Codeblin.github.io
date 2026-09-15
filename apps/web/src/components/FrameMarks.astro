@@ -1,0 +1,26 @@
+---
+/**
+ * Viewport bezel. One hairline around the screen.
+ * On compact viewports the bottom edge is driven by JS so it tracks the
+ * thumb bar while that bar slides.
+ */
+---
+
+<div class="bezel" data-bezel aria-hidden="true"></div>
+
+<style>
+  .bezel {
+    position: fixed;
+    inset: 8px;
+    z-index: var(--z-frame);
+    pointer-events: none;
+    border: var(--bw) solid var(--sulfur-edge);
+  }
+
+  @media (width < 48rem) {
+    .bezel {
+      inset: 4px 4px calc(3.5rem + env(safe-area-inset-bottom, 0px));
+      z-index: var(--z-frame);
+    }
+  }
+</style>

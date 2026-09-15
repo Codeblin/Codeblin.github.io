@@ -1,0 +1,136 @@
+/*
+ * SUBSTRATE — prose.
+ *
+ * Styling for HTML produced from prose blocks. Whatever the surrounding
+ * chrome does, the reading column stays calm: one column, one measure, high
+ * contrast, generous leading. DESIGN.md principle 7.
+ */
+
+@layer components {
+  .prose {
+    color: var(--bone);
+    font-size: var(--fs-body);
+    line-height: var(--lh-body);
+  }
+
+  .prose p {
+    margin-block: 0;
+  }
+
+  .prose a {
+    color: var(--bone);
+    text-decoration: underline;
+    text-decoration-color: var(--ghost);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+
+  .prose a:hover,
+  .prose a:focus-visible {
+    color: var(--sulfur);
+    text-decoration-color: var(--sulfur-edge);
+  }
+
+  /* External links get a small raised marker rather than an icon font. */
+  .prose a[data-external]::after {
+    content: "↗";
+    display: inline-block;
+    margin-inline-start: 0.22em;
+    font-family: var(--font-label);
+    font-size: 0.62em;
+    vertical-align: 0.42em;
+    color: var(--dust);
+  }
+
+  .prose a[data-external]:hover::after {
+    color: var(--sulfur);
+  }
+
+  .prose em {
+    font-style: italic;
+  }
+
+  .prose strong {
+    font-weight: var(--w-semibold);
+    color: var(--bone);
+  }
+
+  .prose code {
+    font-family: var(--font-code);
+    font-size: 0.86em;
+    padding: 0.12em 0.34em;
+    background: var(--slate);
+    border: var(--bw) solid var(--hair);
+    color: var(--bone);
+    white-space: nowrap;
+  }
+
+  .prose del {
+    color: var(--dust);
+  }
+
+  .prose sup,
+  .prose sub {
+    font-size: 0.7em;
+    line-height: 0;
+  }
+
+  .prose img {
+    inline-size: 100%;
+    border: var(--bw) solid var(--hair);
+  }
+
+  /* Lists inside a prose block — standalone lists are their own block type. */
+  .prose ul,
+  .prose ol {
+    padding-inline-start: var(--s-6);
+    margin-block: 0;
+  }
+
+  .prose li + li {
+    margin-block-start: var(--s-2);
+  }
+
+  .prose ul {
+    list-style: none;
+    padding-inline-start: var(--s-4);
+  }
+
+  .prose ul > li {
+    position: relative;
+    padding-inline-start: var(--s-4);
+  }
+
+  .prose ul > li::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0;
+    inset-block-start: 0.72em;
+    inline-size: 6px;
+    block-size: 1px;
+    background: var(--sulfur);
+  }
+
+  .prose ol {
+    list-style: none;
+    counter-reset: prose-item;
+    padding-inline-start: var(--s-4);
+  }
+
+  .prose ol > li {
+    position: relative;
+    counter-increment: prose-item;
+    padding-inline-start: var(--s-6);
+  }
+
+  .prose ol > li::before {
+    content: counter(prose-item, decimal-leading-zero);
+    position: absolute;
+    inset-inline-start: 0;
+    font-family: var(--font-label);
+    font-size: var(--fs-micro);
+    letter-spacing: var(--tr-micro);
+    color: var(--dust);
+    line-height: 2.2;
+  }
+}

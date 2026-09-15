@@ -1,0 +1,166 @@
+---
+import { listPosts } from '@codeblin/content';
+
+import Base from '~/layouts/Base.astro';
+import RecordRow from '~/components/RecordRow.astro';
+import { listing } from '~/site.config.ts';
+
+const recent = listPosts().slice(0, 4);
+
+/**
+ * The status readout is the page's only ornament — a real signal rendered in
+ * the archive's own vocabulary rather than a joke about hacking.
+ */
+const readout = [
+  ['REQUEST', 'RESOLVED'],
+  ['RECORD', 'NOT FOUND'],
+  ['STATUS', '404'],
+  ['INDEX', `${listPosts().length} RECORDS AVAILABLE`],
+] as const;
+---
+
+<Base title="404 — Record not found" description="No record exists at this address." noindex>
+  <div class="shell notfound">
+    <div class="notfound__main">
+      <p class="notfound__code display">404</p>
+      <h1 class="notfound__title display">Record not found</h1>
+      <p class="notfound__lede">
+        Nothing is indexed at this address. It may have been renamed, or it may never have
+        existed. The archive keeps everything, so start from the index.
+      </p>
+
+      <div class="notfound__actions">
+        <a class="notfound__action label bracketed" href="/research/">Browse research</a>
+        <a class="notfound__action label bracketed" href="/search/">Search the archive</a>
+      </div>
+    </div>
+
+    <dl class="notfound__readout" aria-hidden="true">
+      {
+        readout.map(([key, value]) => (
+          <div class="notfound__line">
+            <dt class="micro">{key}</dt>
+            <dd class="micro" data-decode>{value}</dd>
+          </div>
+        ))
+      }
+    </dl>
+  </div>
+
+  <section class="shell notfound__recent">
+    <p class="label notfound__recent-head">
+      <span class="notfound__slash" aria-hidden="true">/</span>
+      Recent records
+    </p>
+    <div class="notfound__rows">
+      {
+        recent.slice(0, listing.homepageRecent).map((post) => (
+          <RecordRow post={post} revealGroup="notfound" />
+        ))
+      }
+    </div>
+  </section>
+</Base>
+
+<style>
+  .notfound {
+    display: grid;
+    gap: var(--s-12);
+    padding-block: var(--s-24) var(--s-16);
+    align-items: start;
+  }
+
+  @media (width >= 62rem) {
+    .notfound {
+      grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+      gap: var(--s-16);
+    }
+  }
+
+  .notfound__main {
+    display: grid;
+    gap: var(--s-4);
+  }
+
+  .notfound__code {
+    font-size: var(--fs-display-1);
+    line-height: 0.8;
+    color: var(--carbon);
+    /* The number is texture, not a heading; it sits behind the real title. */
+    letter-spacing: -0.04em;
+    animation: cb-glitch 5.5s steps(1, end) infinite;
+  }
+
+  .notfound__title {
+    font-size: var(--fs-display-2);
+    color: var(--bone);
+  }
+
+  .notfound__lede {
+    max-inline-size: 52ch;
+    color: var(--ash);
+    line-height: 1.65;
+  }
+
+  .notfound__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-3);
+    margin-block-start: var(--s-4);
+  }
+
+  .notfound__action {
+    padding: var(--s-3) var(--s-4);
+    border: var(--bw) solid var(--hair-lit);
+    color: var(--bone);
+    text-decoration: none;
+  }
+
+  .notfound__action:hover,
+  .notfound__action:focus-visible {
+    color: var(--sulfur);
+    border-color: var(--sulfur-edge);
+  }
+
+  .notfound__readout {
+    display: grid;
+    gap: var(--s-1);
+    padding: var(--s-4) var(--s-5);
+    border: var(--bw) solid var(--hair);
+    background: var(--tar);
+  }
+
+  .notfound__line {
+    display: grid;
+    grid-template-columns: 5.5rem minmax(0, 1fr);
+    gap: var(--s-3);
+  }
+
+  .notfound__line dt {
+    color: var(--ghost);
+  }
+
+  .notfound__line dd {
+    margin: 0;
+    color: var(--dust);
+  }
+
+  .notfound__line:nth-child(3) dd {
+    color: var(--sulfur);
+  }
+
+  .notfound__recent-head {
+    display: flex;
+    gap: var(--s-2);
+    color: var(--dust);
+    margin-block-end: var(--s-3);
+  }
+
+  .notfound__slash {
+    color: var(--sulfur);
+  }
+
+  .notfound__rows {
+    border-block-start: var(--bw) solid var(--hair);
+  }
+</style>

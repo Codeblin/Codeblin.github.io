@@ -1,0 +1,56 @@
+---
+interface Props {
+  label: string;
+  value: string;
+  href?: string;
+}
+
+const { label, value, href } = Astro.props;
+---
+
+<div class="leader">
+  <dt class="leader__key label">{label}</dt>
+  <span class="leader__fill" aria-hidden="true"></span>
+  <dd class="leader__value label">
+    {href ? <a href={href}>{value}</a> : value}
+  </dd>
+</div>
+
+<style>
+  /*
+   * Label left, value right, dotted fill between. The fill is a border rather
+   * than repeated characters, so it reflows at any width and never wraps.
+   */
+  .leader {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-2);
+  }
+
+  .leader__key {
+    flex: none;
+    color: var(--dust);
+  }
+
+  .leader__fill {
+    flex: 1;
+    min-inline-size: var(--s-4);
+    border-block-end: 1px dotted var(--ghost);
+    margin-block-end: 0.28em;
+  }
+
+  .leader__value {
+    flex: none;
+    margin: 0;
+    color: var(--bone);
+  }
+
+  .leader__value a {
+    text-decoration: none;
+  }
+
+  .leader__value a:hover,
+  .leader__value a:focus-visible {
+    color: var(--sulfur);
+  }
+</style>

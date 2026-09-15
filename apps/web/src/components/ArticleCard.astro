@@ -1,0 +1,284 @@
+---
+import { findCategory, type LoadedPost } from '@codeblin/content';
+import Frame from '~/components/Frame.astro';
+import { readingLabel, recordNumber, stampDate } from '~/lib/format.ts';
+
+interface Props {
+  post: LoadedPost;
+  /** `feature` is the single lead card; `standard` fills the grid. */
+  variant?: 'feature' | 'standard';
+  revealGroup?: string;
+}
+
+const { post, variant = 'standard', revealGroup } = Astro.props;
+const { frontmatter } = post;
+const category = findCategory(frontmatter.category);
+const href = `/research/${post.slug}/`;
+---
+
+<article
+  class="card bracketed hud-edge"
+  data-variant={variant}
+  data-cover={frontmatter.cover ? '' : undefined}
+  data-reveal
+  data-reveal-group={revealGroup}
+  data-vt-kind="post"
+  data-vt-slug={post.slug}
+>
+  <a class="card__link" href={href}>
+    <span class="visually-hidden">{frontmatter.title}</span>
+  </a>
+
+  {
+    frontmatter.cover && (
+      <div class="card__cover">
+        <Frame
+          kind="posts"
+          slug={post.slug}
+          src={frontmatter.cover.src}
+          alt={frontmatter.cover.alt}
+          duotone={frontmatter.cover.duotone ?? true}
+          widths={variant === 'feature' ? [640, 1024, 1440] : [400, 640, 900]}
+          sizes={
+            variant === 'feature' ? '(min-width: 62rem) 58rem, 100vw' : '(min-width: 62rem) 28rem, 100vw'
+          }
+        />
+      </div>
+    )
+  }
+
+  <div class="card__body">
+    <div class="card__top">
+      <span class="card__record micro">{recordNumber(frontmatter.record)}</span>
+      {
+        category && (
+          <a class="card__category micro" href={`/categories/${category.slug}/`}>
+            {category.name}
+          </a>
+        )
+      }
+    </div>
+
+    <h3 class="card__title display" data-vt-title>{frontmatter.title}</h3>
+
+    {
+      variant === 'standard' ? (
+        <p class="card__subtitle">{frontmatter.subtitle}</p>
+      ) : (
+        frontmatter.subtitle && <p class="card__subtitle">{frontmatter.subtitle}</p>
+      )
+    }
+
+    {variant === 'feature' && frontmatter.excerpt && (
+      <p class="card__excerpt">{frontmatter.excerpt}</p>
+    )}
+
+    <div class="card__foot">
+      <p class="card__meta micro">
+        <span>{stampDate(frontmatter.publishedAt)}</span>
+        <span class="card__dot" aria-hidden="true">·</span>
+        <span class="card__read">{readingLabel(post.readingMinutes)}</span>
+      </p>
+      <ul class="card__tags" role="list">
+        {
+          frontmatter.tags.slice(0, 3).map((tag) => (
+            <li class="micro">{tag}</li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+</article>
+
+<style>
+  /*
+   * The whole card is a target via a stretched link, so the title, cover and
+   * padding all activate it — but the category link inside stays separately
+   * clickable by sitting above it in the stacking order.
+   */
+  .card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-inline-size: 0;
+    border: var(--bw) solid var(--hair);
+    background: var(--tar);
+  }
+
+  .card:hover,
+  .card:focus-within {
+    border-color: var(--sulfur-edge);
+    background: var(--carbon);
+  }
+
+  .card__link {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+
+  .card__cover {
+    position: relative;
+    border-block-end: var(--bw) solid var(--hair);
+  }
+
+  .card__cover :global(.frame) {
+    border: 0;
+  }
+
+  .card__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-3);
+    padding: var(--s-4) var(--s-5) var(--s-5);
+    flex: 1;
+    min-inline-size: 0;
+  }
+
+  .card__top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--s-3);
+  }
+
+  .card__record {
+    color: var(--sulfur);
+  }
+
+  .card__category {
+    position: relative;
+    z-index: 2;
+    color: var(--dust);
+    text-decoration: none;
+  }
+
+  .card__category:hover,
+  .card__category:focus-visible {
+    color: var(--bone);
+  }
+
+  .card__title {
+    color: var(--bone);
+    font-size: var(--fs-h2);
+    line-height: 1.1;
+  }
+
+  .card[data-variant="standard"] .card__title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    min-block-size: 2.2em;
+  }
+
+  .card__subtitle {
+    color: var(--ash);
+    font-size: var(--fs-small);
+    line-height: 1.55;
+  }
+
+  .card[data-variant="standard"] .card__subtitle {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    min-block-size: 3.1em;
+  }
+
+  .card__excerpt {
+    color: var(--ash);
+    font-size: var(--fs-body);
+    line-height: 1.6;
+    max-inline-size: 56ch;
+  }
+
+  .card__foot {
+    display: grid;
+    gap: var(--s-2);
+    margin-block-start: auto;
+    padding-block-start: var(--s-4);
+    border-block-start: var(--bw) solid var(--hair);
+    color: var(--dust);
+    min-inline-size: 0;
+  }
+
+  .card__meta {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-2);
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  .card__read {
+    white-space: nowrap;
+  }
+
+  .card__dot {
+    color: var(--ghost);
+  }
+
+  .card__tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: start;
+    gap: var(--s-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--ghost);
+    min-block-size: 1.4em;
+  }
+
+  .card__tags li {
+    white-space: nowrap;
+  }
+
+  /* ── Feature variant ──────────────────────────────────────────────────── */
+
+  /* Without a cover the feature card is a single wide typographic panel;
+     splitting it in two would leave a hole where the image should be. */
+  .card[data-variant="feature"][data-cover] {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  }
+
+  .card[data-variant="feature"] .card__cover {
+    position: relative;
+    overflow: hidden;
+    border-block-end: 0;
+    border-inline-end: var(--bw) solid var(--hair);
+    block-size: 100%;
+  }
+
+  .card[data-variant="feature"] .card__cover :global(.frame),
+  .card[data-variant="feature"] .card__cover :global(img) {
+    block-size: 100%;
+    object-fit: cover;
+  }
+
+  .card[data-variant="feature"] .card__body {
+    padding: var(--s-8);
+    gap: var(--s-4);
+  }
+
+  .card[data-variant="feature"] .card__title {
+    font-size: var(--fs-display-3);
+  }
+
+  @media (width < 62rem) {
+    .card[data-variant="feature"] {
+      grid-template-columns: 1fr;
+    }
+
+    .card[data-variant="feature"] .card__cover {
+      border-inline-end: 0;
+      border-block-end: var(--bw) solid var(--hair);
+    }
+
+    .card[data-variant="feature"] .card__body {
+      padding: var(--s-5);
+    }
+  }
+</style>

@@ -1,0 +1,183 @@
+---
+import type { LoadedProject, ProjectStatus } from '@codeblin/content';
+
+import { monthStamp, recordNumber } from '~/lib/format.ts';
+
+interface Props {
+  project: LoadedProject;
+  revealGroup?: string;
+}
+
+const { project, revealGroup } = Astro.props;
+const { frontmatter } = project;
+
+const STATUS_TONE: Record<ProjectStatus, 'live' | 'warm' | 'cold'> = {
+  active: 'live',
+  maintained: 'live',
+  research: 'warm',
+  archived: 'cold',
+};
+
+const tone = STATUS_TONE[frontmatter.status];
+---
+
+<article
+  class="project hairline hud-edge"
+  data-reveal={revealGroup}
+  data-vt-kind="project"
+  data-vt-slug={project.slug}
+>
+  <a class="project__link" href={`/projects/${project.slug}/`}>
+    <header class="project__head">
+      <span class="micro project__record">{recordNumber(frontmatter.record)}</span>
+      <span class="micro project__status" data-tone={tone}>
+        <span class="project__pip" aria-hidden="true"></span>
+        {frontmatter.status}
+      </span>
+    </header>
+
+    <h3 class="project__name display" data-vt-title>{frontmatter.name}</h3>
+    <p class="project__tagline">{frontmatter.tagline}</p>
+
+    <dl class="project__spec">
+      <div class="project__row">
+        <dt class="micro">STACK</dt>
+        <dd class="micro">{frontmatter.technologies.slice(0, 4).join(' · ')}</dd>
+      </div>
+      <div class="project__row">
+        <dt class="micro">SINCE</dt>
+        <dd class="micro">{monthStamp(frontmatter.startedAt)}</dd>
+      </div>
+    </dl>
+  </a>
+
+  {
+    frontmatter.repository && (
+      <a class="project__source micro" href={frontmatter.repository} rel="noopener noreferrer">
+        SOURCE ↗
+      </a>
+    )
+  }
+</article>
+
+<style>
+  .project {
+    position: relative;
+    display: grid;
+    background: var(--tar);
+  }
+
+  .project:hover,
+  .project:focus-within {
+    border-color: var(--sulfur-edge);
+    background: var(--carbon);
+  }
+
+  .project__link {
+    display: grid;
+    gap: var(--s-3);
+    align-content: start;
+    padding: var(--s-5);
+    text-decoration: none;
+    block-size: 100%;
+  }
+
+  /* The whole card is the hit area; the source link opts back out below. */
+  .project__link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+
+  .project__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--s-3);
+  }
+
+  .project__record {
+    color: var(--sulfur);
+  }
+
+  .project__status {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-2);
+    color: var(--dust);
+    text-transform: uppercase;
+  }
+
+  /*
+   * Status reads through the pip, not the text: a coloured word in every card
+   * would compete with the accent. Green is deliberately absent.
+   */
+  .project__pip {
+    inline-size: 6px;
+    block-size: 6px;
+    flex-shrink: 0;
+    background: var(--ghost);
+  }
+
+  .project__status[data-tone='live'] .project__pip {
+    background: var(--sulfur);
+    animation: cb-pulse 2.4s var(--ease-std) infinite;
+  }
+
+  .project__status[data-tone='warm'] .project__pip {
+    background: var(--sev-medium);
+  }
+
+  .project__status[data-tone='cold'] {
+    color: var(--ghost);
+  }
+
+  .project__name {
+    font-size: var(--fs-h3);
+    color: var(--bone);
+    line-height: 1.05;
+  }
+
+  .project__tagline {
+    color: var(--ash);
+    font-size: var(--fs-small);
+    line-height: 1.55;
+  }
+
+  .project__spec {
+    display: grid;
+    gap: var(--s-1);
+    margin-block-start: auto;
+    padding-block-start: var(--s-4);
+    border-block-start: var(--bw) solid var(--hair);
+  }
+
+  .project__row {
+    display: grid;
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+    gap: var(--s-3);
+  }
+
+  .project__row dt {
+    color: var(--ghost);
+  }
+
+  .project__row dd {
+    margin: 0;
+    color: var(--dust);
+  }
+
+  .project__source {
+    position: relative;
+    z-index: 1;
+    justify-self: start;
+    margin: 0 var(--s-5) var(--s-5);
+    color: var(--dust);
+    text-decoration: none;
+  }
+
+  .project__source:hover,
+  .project__source:focus-visible {
+    color: var(--sulfur);
+  }
+</style>

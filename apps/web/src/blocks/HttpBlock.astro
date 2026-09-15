@@ -1,0 +1,175 @@
+---
+import type { Block } from '@codeblin/content';
+import CopyButton from '~/components/CopyButton.astro';
+import { highlightCode } from '~/lib/highlight.ts';
+
+interface Props {
+  block: Extract<Block, { type: 'http' }>;
+}
+
+const { block } = Astro.props;
+
+/**
+ * An HTTP message is three things a reader treats differently: a start line,
+ * a header set, and a body. Splitting them here means each can be styled for
+ * what it is instead of being one undifferentiated blob of monospace.
+ */
+const [head = '', ...rest] = block.source.replace(/\r\n/g, '\n').split('\n\n');
+const [startLine = '', ...headerLines] = head.split('\n');
+const body = rest.join('\n\n').trim();
+
+const headers = headerLines
+  .map((line) => {
+    const index = line.indexOf(':');
+    return index === -1
+      ? null
+      : { name: line.slice(0, index).trim(), value: line.slice(index + 1).trim() };
+  })
+  .filter((header): header is { name: string; value: string } => header !== null);
+
+const looksLikeJson = body.startsWith('{') || body.startsWith('[');
+const bodyHtml = body ? await highlightCode(body, { lang: looksLikeJson ? 'json' : 'text' }) : '';
+
+const sourceId = `http-${block.id}`;
+const [method = '', ...target] = startLine.split(' ');
+const isRequest = block.direction === 'request';
+const statusClass = /^HTTP\/\d/.test(startLine)
+  ? Number.parseInt(target[0] ?? '0', 10) >= 400
+    ? 'error'
+    : 'ok'
+  : undefined;
+---
+
+<figure class="http notched" data-direction={block.direction}>
+  <div class="http__bar">
+    <span class="http__tag micro">{isRequest ? 'REQUEST' : 'RESPONSE'}</span>
+    <span class="http__start">
+      <span class="http__method" data-status={statusClass}>{method}</span>
+      <span class="http__target">{target.join(' ')}</span>
+    </span>
+    <CopyButton target={sourceId} label="Copy HTTP message" />
+  </div>
+
+  {
+    headers.length > 0 && (
+      <dl class="http__headers">
+        {headers.map((header) => (
+          <div class="http__header">
+            <dt class="label">{header.name}</dt>
+            <dd>{header.value}</dd>
+          </div>
+        ))}
+      </dl>
+    )
+  }
+
+  {body && <div class="http__body" set:html={bodyHtml} />}
+
+  <pre class="visually-hidden" id={sourceId}>{block.source}</pre>
+</figure>
+
+<style>
+  .http {
+    border: var(--bw) solid var(--hair);
+    background: var(--slate);
+    --notch: 12px;
+  }
+
+  .http__bar {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-3);
+    padding: var(--s-2) var(--s-3);
+    border-block-end: var(--bw) solid var(--hair);
+    background: var(--tar);
+    overflow: hidden;
+  }
+
+  .http__tag {
+    color: var(--sulfur);
+    flex: none;
+  }
+
+  .http__start {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-2);
+    margin-inline-end: auto;
+    min-inline-size: 0;
+    font-family: var(--font-code);
+    font-size: var(--fs-code);
+  }
+
+  .http__method {
+    color: var(--bone);
+    font-weight: 600;
+  }
+
+  .http__method[data-status="ok"] {
+    color: var(--bone);
+  }
+
+  .http__method[data-status="error"] {
+    color: var(--sev-high);
+  }
+
+  .http__target {
+    color: var(--ash);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .http__headers {
+    margin: 0;
+    padding: var(--s-3) var(--s-4);
+    display: grid;
+    gap: 2px;
+    border-block-end: var(--bw) solid var(--hair);
+  }
+
+  .http__header {
+    display: grid;
+    grid-template-columns: minmax(8rem, 14rem) minmax(0, 1fr);
+    gap: var(--s-4);
+    padding-block: 3px;
+  }
+
+  .http__header:nth-child(odd) {
+    background: color-mix(in srgb, var(--carbon) 55%, transparent);
+  }
+
+  .http__header dt {
+    color: var(--dust);
+  }
+
+  .http__header dd {
+    margin: 0;
+    font-family: var(--font-code);
+    font-size: var(--fs-code);
+    color: var(--ash);
+    overflow-wrap: anywhere;
+  }
+
+  .http__body :global(pre) {
+    margin: 0;
+    padding: var(--s-4);
+    overflow-x: auto;
+    font-size: var(--fs-code);
+    line-height: var(--lh-code);
+    background: transparent !important;
+  }
+
+  @media (width < 48rem) {
+    .http {
+      margin-inline: calc(var(--page-gutter) * -1);
+      border-inline: 0;
+      clip-path: none;
+    }
+
+    .http__header {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+  }
+</style>

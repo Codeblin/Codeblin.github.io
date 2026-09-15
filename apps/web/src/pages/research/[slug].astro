@@ -1,0 +1,500 @@
+---
+import {
+  adjacentPosts,
+  findCategory,
+  listPosts,
+  relatedPosts,
+  seriesPosts,
+  walkBlocks,
+  type LoadedPost,
+} from '@codeblin/content';
+import type { GetStaticPaths } from 'astro';
+
+import BlockRenderer from '~/blocks/BlockRenderer.astro';
+import ArticleCard from '~/components/ArticleCard.astro';
+import DotLeader from '~/components/DotLeader.astro';
+import Frame from '~/components/Frame.astro';
+import SectionHead from '~/components/SectionHead.astro';
+import TableOfContents from '~/components/TableOfContents.astro';
+import TagList from '~/components/TagList.astro';
+import Base from '~/layouts/Base.astro';
+import { isoDateTime, longDate, readingLabel, recordNumber, stampDate } from '~/lib/format.ts';
+import { author, listing, site } from '~/site.config.ts';
+
+export const getStaticPaths = (() => {
+  return listPosts().map((post) => ({ params: { slug: post.slug }, props: { post } }));
+}) satisfies GetStaticPaths;
+
+interface Props {
+  post: LoadedPost;
+}
+
+const { post } = Astro.props;
+const { frontmatter } = post;
+
+const all = listPosts();
+const category = findCategory(frontmatter.category);
+const related = relatedPosts(post, all, listing.relatedPosts);
+const { previous, next } = adjacentPosts(post, all);
+const series = frontmatter.series ? seriesPosts(frontmatter.series.id, all) : [];
+
+const hasCode = [...walkBlocks(post.blocks)].some(
+  (block) => block.type === 'code' || block.type === 'terminal' || block.type === 'http',
+);
+
+const findings = [...walkBlocks(post.blocks)].filter((block) => block.type === 'finding');
+
+const canonical = frontmatter.canonical ?? undefined;
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'TechArticle',
+  headline: frontmatter.title,
+  description: frontmatter.excerpt ?? frontmatter.subtitle ?? site.description,
+  datePublished: isoDateTime(frontmatter.publishedAt),
+  dateModified: isoDateTime(frontmatter.updatedAt ?? frontmatter.publishedAt),
+  author: { '@type': 'Person', name: author.name, url: author.github },
+  publisher: { '@type': 'Organization', name: site.title },
+  mainEntityOfPage: new URL(Astro.url.pathname, Astro.site ?? site.url).href,
+  keywords: frontmatter.tags.join(', '),
+  articleSection: category?.name,
+  wordCount: post.wordCount,
+};
+---
+
+<Base
+  title={frontmatter.title}
+  description={frontmatter.excerpt ?? frontmatter.subtitle ?? site.description}
+  ogType="article"
+  canonical={canonical}
+  publishedTime={isoDateTime(frontmatter.publishedAt)}
+  modifiedTime={isoDateTime(frontmatter.updatedAt)}
+  preloadCodeFont={hasCode}
+>
+  <script
+    slot="head"
+    type="application/ld+json"
+    set:html={JSON.stringify(structuredData)}
+  />
+
+  <article class="article">
+    <header class="article__head shell">
+      <nav class="article__trail" aria-label="Breadcrumb">
+        <a class="micro" href="/research/">RESEARCH</a>
+        <span class="micro article__sep" aria-hidden="true">/</span>
+        {
+          category && (
+            <a class="micro article__cat" href={`/categories/${category.slug}/`}>
+              {category.name}
+            </a>
+          )
+        }
+        <span class="micro article__record">{recordNumber(frontmatter.record)}</span>
+      </nav>
+
+      <h1 class="article__title display" data-vt-title>{frontmatter.title}</h1>
+
+      {frontmatter.subtitle && <p class="article__subtitle">{frontmatter.subtitle}</p>}
+
+      <div class="article__meta">
+        <button
+          class="article__meta-toggle label"
+          type="button"
+          aria-expanded="false"
+          aria-controls="article-meta-sheet"
+          data-meta-toggle
+        >
+          <span>{stampDate(frontmatter.publishedAt)}</span>
+          <span aria-hidden="true">·</span>
+          <span>{readingLabel(post.readingMinutes)}</span>
+          <span class="article__meta-more" aria-hidden="true">DETAILS ▾</span>
+        </button>
+
+        <dl class="article__meta-sheet" id="article-meta-sheet" hidden>
+          <DotLeader label="Published" value={longDate(frontmatter.publishedAt)} />
+          {
+            frontmatter.updatedAt && frontmatter.updatedAt !== frontmatter.publishedAt && (
+              <DotLeader label="Revised" value={longDate(frontmatter.updatedAt)} />
+            )
+          }
+          <DotLeader label="Reading" value={readingLabel(post.readingMinutes)} />
+          <DotLeader label="Words" value={post.wordCount.toLocaleString('en-GB')} />
+          {category && (
+            <DotLeader
+              label="Category"
+              value={category.name}
+              href={`/categories/${category.slug}/`}
+            />
+          )}
+          {findings.length > 0 && (
+            <DotLeader label="Findings" value={String(findings.length)} />
+          )}
+        </dl>
+      </div>
+    </header>
+
+    {
+      frontmatter.cover && (
+        <div class="article__cover shell">
+          <Frame
+            kind="posts"
+            slug={post.slug}
+            src={frontmatter.cover.src}
+            alt={frontmatter.cover.alt}
+            duotone={frontmatter.cover.duotone ?? true}
+            widths={[800, 1200, 1800, 2400]}
+            sizes="(min-width: 90rem) 86rem, 100vw"
+            loading="eager"
+          />
+        </div>
+      )
+    }
+
+    <div class="article__grid shell">
+      <aside class="article__rail">
+        <TableOfContents headings={post.headings} />
+      </aside>
+
+      <div class="article__body">
+        {
+          series.length > 1 && frontmatter.series && (
+            <nav class="series" aria-label="Series">
+              <p class="series__head label">
+                <span class="series__slash" aria-hidden="true">
+                  /
+                </span>
+                Part {frontmatter.series.order} of {series.length}
+              </p>
+              <ol class="series__list" role="list">
+                {series.map((entry) => (
+                  <li>
+                    <a
+                      href={`/research/${entry.slug}/`}
+                      aria-current={entry.slug === post.slug ? 'page' : undefined}
+                    >
+                      <span class="micro series__index">
+                        {String(entry.frontmatter.series?.order ?? 0).padStart(2, '0')}
+                      </span>
+                      {entry.frontmatter.title}
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </nav>
+          )
+        }
+
+        <BlockRenderer blocks={post.blocks} kind="posts" slug={post.slug} />
+
+        <footer class="article__foot">
+          {
+            frontmatter.tags.length > 0 && (
+              <section class="article__tags">
+                <p class="label article__foot-head">/ Tagged</p>
+                <TagList tags={frontmatter.tags} />
+              </section>
+            )
+          }
+
+          <nav class="adjacent" aria-label="Adjacent research">
+            {
+              previous && (
+                <a class="adjacent__item bracketed" href={`/research/${previous.slug}/`}>
+                  <span class="micro adjacent__dir">← PREVIOUS</span>
+                  <span class="adjacent__title">{previous.frontmatter.title}</span>
+                </a>
+              )
+            }
+            {
+              next && (
+                <a
+                  class="adjacent__item adjacent__item--next bracketed"
+                  href={`/research/${next.slug}/`}
+                >
+                  <span class="micro adjacent__dir">NEXT →</span>
+                  <span class="adjacent__title">{next.frontmatter.title}</span>
+                </a>
+              )
+            }
+          </nav>
+        </footer>
+      </div>
+    </div>
+
+    {
+      related.length > 0 && (
+        <section class="shell article__related">
+          <SectionHead title="Related research" meta={`${related.length} MATCHED`} />
+          <div class="article__related-grid">
+            {related.map((entry) => (
+              <ArticleCard post={entry} revealGroup="related" />
+            ))}
+          </div>
+        </section>
+      )
+    }
+  </article>
+</Base>
+
+<style>
+  /* ── Header ───────────────────────────────────────────────────────────── */
+
+  .article__head {
+    display: grid;
+    gap: var(--s-4);
+    padding-block: var(--s-12) var(--s-8);
+  }
+
+  .article__trail {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-2);
+  }
+
+  .article__trail a {
+    color: var(--dust);
+    text-decoration: none;
+  }
+
+  .article__trail a:hover,
+  .article__trail a:focus-visible {
+    color: var(--bone);
+  }
+
+  .article__cat {
+    color: var(--ash) !important;
+  }
+
+  .article__sep {
+    color: var(--ghost);
+  }
+
+  .article__record {
+    margin-inline-start: auto;
+    color: var(--sulfur);
+  }
+
+  .article__title {
+    font-size: var(--fs-display-2);
+    max-inline-size: 22ch;
+    color: var(--bone);
+  }
+
+  .article__subtitle {
+    max-inline-size: 58ch;
+    font-size: calc(var(--fs-body) * 1.12);
+    line-height: 1.55;
+    color: var(--ash);
+  }
+
+  /* ── Metadata ─────────────────────────────────────────────────────────── */
+
+  .article__meta {
+    margin-block-start: var(--s-2);
+  }
+
+  .article__meta-toggle {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-2);
+    padding: var(--s-2) 0;
+    color: var(--dust);
+    cursor: pointer;
+  }
+
+  .article__meta-more {
+    color: var(--sulfur);
+    margin-inline-start: var(--s-2);
+  }
+
+  .article__meta-toggle[aria-expanded="true"] .article__meta-more {
+    color: var(--bone);
+  }
+
+  .article__meta-sheet {
+    display: grid;
+    gap: var(--s-1);
+    max-inline-size: 34rem;
+    margin-block-start: var(--s-3);
+    padding-block-start: var(--s-3);
+    border-block-start: var(--bw) solid var(--hair);
+  }
+
+  /*
+   * On desktop the details are always shown; the toggle is a mobile
+   * affordance and disappears with the pointer that needed it.
+   */
+  @media (width >= 62rem) {
+    .article__meta-toggle {
+      display: none;
+    }
+
+    .article__meta-sheet[hidden] {
+      display: grid;
+    }
+
+    .article__meta-sheet {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--s-1) var(--s-8);
+      max-inline-size: 46rem;
+    }
+  }
+
+  /* ── Cover ────────────────────────────────────────────────────────────── */
+
+  .article__cover {
+    margin-block-end: var(--s-12);
+  }
+
+  /* ── Grid ─────────────────────────────────────────────────────────────── */
+
+  .article__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-12);
+  }
+
+  /*
+   * The reading column sits left of centre with the technical rail in the
+   * residual space. Centred is what a template does; see DESIGN.md §6.
+   */
+  @media (width >= 62rem) {
+    .article__grid {
+      grid-template-columns: minmax(0, var(--measure)) minmax(14rem, 20rem);
+      gap: var(--s-16);
+      justify-content: start;
+      padding-inline-start: clamp(0rem, 4vw, 6rem);
+    }
+  }
+
+  .article__rail {
+    display: none;
+  }
+
+  @media (width >= 62rem) {
+    .article__rail {
+      display: block;
+      order: 2;
+    }
+  }
+
+  .article__body {
+    min-inline-size: 0;
+    max-inline-size: var(--measure);
+    --wide-width: 58rem;
+  }
+
+  /* ── Series ───────────────────────────────────────────────────────────── */
+
+  .series {
+    margin-block-end: var(--s-8);
+    padding: var(--s-4) var(--s-5);
+    border: var(--bw) solid var(--hair);
+    background: var(--tar);
+  }
+
+  .series__head {
+    color: var(--bone);
+    display: flex;
+    gap: var(--s-2);
+  }
+
+  .series__slash {
+    color: var(--sulfur);
+  }
+
+  .series__list {
+    list-style: none;
+    margin: var(--s-3) 0 0;
+    padding: 0;
+    display: grid;
+    gap: var(--s-2);
+  }
+
+  .series__list a {
+    display: flex;
+    gap: var(--s-3);
+    align-items: baseline;
+    color: var(--dust);
+    font-size: var(--fs-small);
+    text-decoration: none;
+  }
+
+  .series__list a:hover {
+    color: var(--bone);
+  }
+
+  .series__list a[aria-current="page"] {
+    color: var(--bone);
+  }
+
+  .series__index {
+    color: var(--ghost);
+  }
+
+  .series__list a[aria-current="page"] .series__index {
+    color: var(--sulfur);
+  }
+
+  /* ── Footer ───────────────────────────────────────────────────────────── */
+
+  .article__foot {
+    margin-block-start: var(--s-16);
+    padding-block-start: var(--s-6);
+    border-block-start: var(--bw) solid var(--hair);
+    display: grid;
+    gap: var(--s-8);
+  }
+
+  .article__foot-head {
+    color: var(--dust);
+    margin-block-end: var(--s-3);
+  }
+
+  .adjacent {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+    gap: var(--grid-gap);
+  }
+
+  .adjacent__item {
+    display: grid;
+    gap: var(--s-2);
+    padding: var(--s-4);
+    border: var(--bw) solid var(--hair);
+    background: var(--tar);
+    text-decoration: none;
+  }
+
+  .adjacent__item:hover,
+  .adjacent__item:focus-visible {
+    border-color: var(--hair-lit);
+    background: var(--carbon);
+  }
+
+  .adjacent__item--next {
+    text-align: end;
+  }
+
+  .adjacent__dir {
+    color: var(--sulfur);
+  }
+
+  .adjacent__title {
+    color: var(--ash);
+    font-size: var(--fs-small);
+    line-height: 1.4;
+  }
+
+  /* ── Related ──────────────────────────────────────────────────────────── */
+
+  .article__related {
+    margin-block-start: var(--s-section);
+  }
+
+  .article__related-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr));
+    gap: var(--grid-gap);
+  }
+</style>

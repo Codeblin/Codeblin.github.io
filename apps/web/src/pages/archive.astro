@@ -1,0 +1,94 @@
+---
+import { listPosts } from '@codeblin/content';
+
+import PageHeader from '~/components/PageHeader.astro';
+import RecordRow from '~/components/RecordRow.astro';
+import Base from '~/layouts/Base.astro';
+
+const posts = listPosts();
+
+/** Grouped by year, newest first — the archive reads as a ledger. */
+const years = new Map<string, typeof posts>();
+for (const post of posts) {
+  const year = post.frontmatter.publishedAt?.slice(0, 4) ?? 'Undated';
+  years.set(year, [...(years.get(year) ?? []), post]);
+}
+const grouped = [...years.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+---
+
+<Base
+  title="Archive"
+  description="Every record ever published, in order, with nothing hidden behind pagination."
+>
+  <PageHeader
+    eyebrow="INDEX 0x03"
+    title="Archive"
+    meta={`${posts.length} RECORDS`}
+    lede="The complete ledger. No pagination, no infinite scroll — everything is on this page."
+  />
+
+  <div class="shell archive">
+    {
+      grouped.map(([year, entries]) => (
+        <section class="archive__year">
+          <div class="archive__marker">
+            <span class="archive__label display">{year}</span>
+            <span class="micro archive__count">{entries.length}</span>
+          </div>
+          <div class="archive__rows">
+            {entries.map((post) => (
+              <RecordRow post={post} revealGroup={`year-${year}`} />
+            ))}
+          </div>
+        </section>
+      ))
+    }
+  </div>
+</Base>
+
+<style>
+  .archive {
+    display: grid;
+    gap: var(--s-12);
+  }
+
+  .archive__year {
+    display: grid;
+    grid-template-columns: 8rem minmax(0, 1fr);
+    gap: var(--grid-gap);
+    align-items: start;
+  }
+
+  .archive__marker {
+    position: sticky;
+    inset-block-start: calc(var(--masthead-h) + var(--s-6));
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-2);
+  }
+
+  .archive__label {
+    font-size: var(--fs-h2);
+    color: var(--bone);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .archive__count {
+    color: var(--sulfur);
+  }
+
+  .archive__rows {
+    border-block-start: var(--bw) solid var(--hair);
+  }
+
+  @media (width < 48rem) {
+    .archive__year {
+      grid-template-columns: 1fr;
+      gap: var(--s-3);
+    }
+
+    .archive__marker {
+      position: static;
+    }
+  }
+</style>

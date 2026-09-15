@@ -1,0 +1,54 @@
+---
+interface Props {
+  tags: readonly string[];
+  size?: 'micro' | 'label';
+}
+
+const { tags, size = 'label' } = Astro.props;
+---
+
+<ul class="tags" role="list">
+  {
+    tags.map((tag) => (
+      <li>
+        <a class:list={['tag', size]} href={`/tags/${tag}/`}>
+          <span class="tag__hash" aria-hidden="true">
+            #
+          </span>
+          {tag}
+        </a>
+      </li>
+    ))
+  }
+</ul>
+
+<style>
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 1px;
+    padding: 4px var(--s-2);
+    border: var(--bw) solid var(--hair);
+    color: var(--dust);
+    text-decoration: none;
+  }
+
+  .tag:hover,
+  .tag:focus-visible {
+    color: var(--bone);
+    border-color: var(--hair-lit);
+  }
+
+  .tag__hash {
+    color: var(--sulfur);
+  }
+</style>

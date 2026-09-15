@@ -1,0 +1,103 @@
+---
+import { navigation } from '~/site.config.ts';
+
+interface Props {
+  path: string;
+}
+
+const { path } = Astro.props;
+const isCurrent = (href: string): boolean => path.startsWith(href);
+---
+
+<nav class="mobile-bar" aria-label="Primary, compact" data-mobile-bar>
+  <ul role="list">
+    {
+      navigation.map((item) => (
+        <li>
+          <a href={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined}>
+            <span class="mobile-bar__code micro" aria-hidden="true">
+              {item.code}
+            </span>
+            <span class="mobile-bar__label micro">{item.label}</span>
+          </a>
+        </li>
+      ))
+    }
+    <li>
+      <a href="/search/">
+        <span class="mobile-bar__code micro" aria-hidden="true">⌕</span>
+        <span class="mobile-bar__label micro">Search</span>
+      </a>
+    </li>
+  </ul>
+</nav>
+
+<style>
+  /*
+   * Anchored to the bottom edge because that is where a thumb is. It retreats
+   * while reading down and returns on any upward movement — see
+   * interactions.ts, and DESIGN.md §9.
+   */
+  .mobile-bar {
+    position: fixed;
+    inset-inline: 0;
+    inset-block-end: 0;
+    z-index: var(--z-header);
+    display: none;
+    background: var(--void);
+    border-block-start: var(--bw) solid var(--hair);
+    padding-block-end: env(safe-area-inset-bottom, 0);
+    transform: translate3d(0, 0, 0);
+    transition: transform var(--dur-4) var(--ease-std);
+  }
+
+  .mobile-bar[data-retracted] {
+    transform: translate3d(0, calc(100% + env(safe-area-inset-bottom, 0px)), 0);
+  }
+
+  @media (width < 48rem) {
+    .mobile-bar {
+      display: block;
+    }
+  }
+
+  .mobile-bar ul {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .mobile-bar li + li {
+    border-inline-start: var(--bw) solid var(--hair);
+  }
+
+  .mobile-bar a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-block-size: 3.5rem;
+    text-decoration: none;
+    color: var(--dust);
+  }
+
+  .mobile-bar a[aria-current="page"] {
+    color: var(--bone);
+    background: var(--sulfur-veil);
+  }
+
+  .mobile-bar__code {
+    color: inherit;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+  }
+
+  .mobile-bar__label {
+    color: inherit;
+    font-size: 0.5rem;
+  }
+</style>

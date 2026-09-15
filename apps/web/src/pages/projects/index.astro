@@ -1,0 +1,33 @@
+---
+import { listProjects } from '@codeblin/content';
+
+import PageHeader from '~/components/PageHeader.astro';
+import ProjectCard from '~/components/ProjectCard.astro';
+import Base from '~/layouts/Base.astro';
+
+const projects = listProjects();
+---
+
+<Base
+  title="Projects"
+  description="Tooling built along the way: Android security utilities, analysis helpers, and research instruments."
+>
+  <PageHeader
+    eyebrow="INDEX 0x02"
+    title="Projects"
+    meta={`${projects.length} TOTAL`}
+    lede="Tools built because the work needed them. Each entry carries its architecture, status and source."
+  />
+
+  <div class="shell listing">
+    {projects.map((project) => <ProjectCard project={project} revealGroup="projects" />)}
+  </div>
+</Base>
+
+<style>
+  .listing {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+    gap: var(--grid-gap);
+  }
+</style>

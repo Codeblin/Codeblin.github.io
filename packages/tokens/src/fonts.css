@@ -1,0 +1,89 @@
+/*
+ * SUBSTRATE — typefaces
+ *
+ * Files are produced by scripts/build-fonts.mjs, which subsets the upstream
+ * Fontsource sources into apps/web/public/fonts/ with stable filenames so the
+ * critical two can be preloaded by URL.
+ *
+ * Critical path (preloaded): Archivo display, Newsreader body.
+ * Deferred: Newsreader italic, Martian Mono labels, IBM Plex Mono code.
+ */
+
+@layer tokens {
+  /* Display — variable weight 400..800 */
+  @font-face {
+    font-family: "Archivo";
+    src: url("/fonts/archivo-display.woff2") format("woff2-variations");
+    font-weight: 400 800;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  /* Body — variable weight 300..700 */
+  @font-face {
+    font-family: "Newsreader";
+    src: url("/fonts/newsreader-body.woff2") format("woff2-variations");
+    font-weight: 300 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: "Newsreader";
+    src: url("/fonts/newsreader-body-italic.woff2") format("woff2-variations");
+    font-weight: 300 700;
+    font-style: italic;
+    font-display: swap;
+  }
+
+  /*
+   * Labels — subset to uppercase, digits and punctuation only. Every use is
+   * `text-transform: uppercase`, so lowercase glyphs would be dead weight.
+   */
+  @font-face {
+    font-family: "Martian Mono";
+    src: url("/fonts/martian-label.woff2") format("woff2-variations");
+    font-weight: 300 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  /* Code */
+  @font-face {
+    font-family: "IBM Plex Mono";
+    src: url("/fonts/plex-mono-400.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: "IBM Plex Mono";
+    src: url("/fonts/plex-mono-600.woff2") format("woff2");
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  /*
+   * Metric-matched fallbacks. These keep the first paint close enough in size
+   * that swapping the real face in does not shift layout.
+   */
+  @font-face {
+    font-family: "Newsreader Fallback";
+    src: local("Georgia"), local("Times New Roman"), local("serif");
+    size-adjust: 96%;
+    ascent-override: 96%;
+    descent-override: 26%;
+    line-gap-override: 0%;
+  }
+
+  @font-face {
+    font-family: "Archivo Fallback";
+    src: local("Arial"), local("Helvetica"), local("sans-serif");
+    size-adjust: 100%;
+    ascent-override: 92%;
+    descent-override: 24%;
+    line-gap-override: 0%;
+  }
+}

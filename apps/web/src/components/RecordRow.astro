@@ -1,0 +1,109 @@
+---
+import { findCategory, type LoadedPost } from '@codeblin/content';
+import { readingLabel, recordNumber, stampDate } from '~/lib/format.ts';
+
+interface Props {
+  post: LoadedPost;
+  revealGroup?: string;
+}
+
+const { post, revealGroup } = Astro.props;
+const { frontmatter } = post;
+const category = findCategory(frontmatter.category);
+---
+
+<a
+  class="row hud-edge"
+  href={`/research/${post.slug}/`}
+  data-reveal
+  data-reveal-group={revealGroup}
+  data-vt-kind="post"
+  data-vt-slug={post.slug}
+>
+  <span class="row__record micro">{recordNumber(frontmatter.record)}</span>
+  <span class="row__date micro">{stampDate(frontmatter.publishedAt)}</span>
+  <span class="row__category micro">{category?.abbr ?? '···'}</span>
+  <span class="row__title" data-vt-title>{frontmatter.title}</span>
+  <span class="row__time micro">{readingLabel(post.readingMinutes)}</span>
+  <span class="row__arrow micro" aria-hidden="true">→</span>
+</a>
+
+<style>
+  /*
+   * The dense listing primitive. Everything is tabular so the columns line up
+   * down the page, which is what makes an archive of eighty records scannable.
+   */
+  .row {
+    display: grid;
+    grid-template-columns: 4.5rem 6rem 3rem minmax(0, 1fr) 4rem 1.5rem;
+    align-items: baseline;
+    gap: var(--s-4);
+    padding: var(--s-3) var(--s-4);
+    border-block-end: var(--bw) solid var(--hair);
+    text-decoration: none;
+  }
+
+  .row:hover,
+  .row:focus-visible {
+    background: var(--carbon);
+  }
+
+  .row__record {
+    color: var(--sulfur);
+  }
+
+  .row__date,
+  .row__category,
+  .row__time {
+    color: var(--dust);
+  }
+
+  .row__title {
+    color: var(--ash);
+    font-size: var(--fs-small);
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .row:hover .row__title,
+  .row:focus-visible .row__title {
+    color: var(--bone);
+  }
+
+  .row__arrow {
+    color: transparent;
+    justify-self: end;
+  }
+
+  .row:hover .row__arrow,
+  .row:focus-visible .row__arrow {
+    color: var(--sulfur);
+  }
+
+  @media (width < 62rem) {
+    .row {
+      grid-template-columns: 4.5rem 3rem minmax(0, 1fr);
+      gap: var(--s-3);
+      row-gap: var(--s-1);
+    }
+
+    .row__date {
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    .row__time,
+    .row__arrow {
+      display: none;
+    }
+
+    .row__title {
+      grid-column: 3;
+      grid-row: 1 / 3;
+      white-space: normal;
+      align-self: center;
+    }
+  }
+</style>

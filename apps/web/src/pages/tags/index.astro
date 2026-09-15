@@ -1,0 +1,119 @@
+---
+import { listPosts, resolveTag } from '@codeblin/content';
+
+import PageHeader from '~/components/PageHeader.astro';
+import Base from '~/layouts/Base.astro';
+
+const posts = listPosts();
+
+const counts = new Map<string, number>();
+for (const post of posts) {
+  for (const tag of post.frontmatter.tags) {
+    counts.set(tag, (counts.get(tag) ?? 0) + 1);
+  }
+}
+
+/** Frequency first so the archive's actual centre of gravity is visible. */
+const tags = [...counts.entries()]
+  .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+  .map(([slug, count]) => ({ tag: resolveTag(slug), count }));
+
+const max = Math.max(1, ...tags.map((entry) => entry.count));
+---
+
+<Base title="Tags" description="Every tag in the archive, ordered by how often it appears.">
+  <PageHeader
+    eyebrow="TAXONOMY"
+    title="Tags"
+    meta={`${tags.length} TAGS`}
+    lede="Ordered by frequency. The bar is the share of records carrying that tag."
+  />
+
+  <ul class="shell tags" role="list">
+    {
+      tags.map(({ tag, count }) => (
+        <li class="tag-row">
+          <a class="tag-row__link" href={`/tags/${tag.slug}/`}>
+            <span class="tag-row__name label">
+              <span class="tag-row__hash" aria-hidden="true">
+                #
+              </span>
+              {tag.slug}
+            </span>
+            <span class="tag-row__bar" aria-hidden="true">
+              <span class="tag-row__fill" style={`--fill:${(count / max) * 100}%`} />
+            </span>
+            <span class="tag-row__count micro">{String(count).padStart(2, '0')}</span>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</Base>
+
+<style>
+  .tags {
+    display: grid;
+    gap: var(--s-1);
+  }
+
+  .tag-row__link {
+    display: grid;
+    grid-template-columns: minmax(8rem, 14rem) minmax(0, 1fr) 2.5rem;
+    gap: var(--s-4);
+    align-items: center;
+    padding: var(--s-3) var(--s-2);
+    text-decoration: none;
+  }
+
+  .tag-row__link:hover,
+  .tag-row__link:focus-visible {
+    background: var(--tar);
+  }
+
+  .tag-row__name {
+    color: var(--ash);
+  }
+
+  .tag-row__hash {
+    color: var(--ghost);
+  }
+
+  .tag-row__link:hover .tag-row__name {
+    color: var(--bone);
+  }
+
+  /* A hairline that fills rather than a chart: the bar is the rule itself. */
+  .tag-row__bar {
+    position: relative;
+    block-size: var(--bw);
+    background: var(--hair);
+  }
+
+  .tag-row__fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    inline-size: var(--fill);
+    background: var(--ghost);
+  }
+
+  .tag-row__link:hover .tag-row__fill {
+    background: var(--sulfur);
+  }
+
+  .tag-row__count {
+    color: var(--dust);
+    text-align: end;
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (width < 40rem) {
+    .tag-row__link {
+      grid-template-columns: minmax(0, 1fr) 2.5rem;
+    }
+
+    .tag-row__bar {
+      display: none;
+    }
+  }
+</style>

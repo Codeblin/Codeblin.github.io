@@ -1,0 +1,65 @@
+{
+  "categories": [
+    {
+      "slug": "mobile-security",
+      "name": "Mobile Security",
+      "abbr": "MOB",
+      "description": "Android and iOS application security: storage, transport, IPC, and the platform behaviour that decides whether a control actually holds.",
+      "order": 1
+    },
+    {
+      "slug": "reverse-engineering",
+      "name": "Reverse Engineering",
+      "abbr": "RE",
+      "description": "Taking binaries, bytecode and protocols apart to establish what they really do, rather than what their documentation claims.",
+      "order": 2
+    },
+    {
+      "slug": "malware-analysis",
+      "name": "Malware Analysis",
+      "abbr": "MAL",
+      "description": "Static and dynamic analysis of hostile code, from obfuscated droppers to the infrastructure they call home.",
+      "order": 3
+    },
+    {
+      "slug": "appsec",
+      "name": "Application Security",
+      "abbr": "APP",
+      "description": "Server-side and web application security: authentication, authorisation, injection, and the design mistakes underneath them.",
+      "order": 4
+    },
+    {
+      "slug": "tooling",
+      "name": "Tooling",
+      "abbr": "TOOL",
+      "description": "Building the instruments the work requires — harnesses, hooks, decompiler helpers and analysis pipelines.",
+      "order": 5
+    }
+  ],
+  "tags": [
+    { "slug": "android", "name": "Android", "description": "The Android platform, its runtime and its security model." },
+    { "slug": "frida", "name": "Frida", "description": "Dynamic instrumentation with Frida and frida-tools." },
+    { "slug": "ghidra", "name": "Ghidra", "description": "Static analysis and decompilation in Ghidra." },
+    { "slug": "jadx", "name": "jadx", "description": "Dalvik bytecode decompilation." },
+    { "slug": "tls", "name": "TLS", "description": "Transport security, certificate validation and pinning." },
+    { "slug": "obfuscation", "name": "Obfuscation", "description": "Code obfuscation and the techniques that undo it." },
+    { "slug": "vbscript", "name": "VBScript", "description": "Windows Script Host and VBScript payloads." },
+    { "slug": "owasp", "name": "OWASP", "description": "OWASP MASVS, ASVS and testing guides." },
+    { "slug": "masvs", "name": "MASVS", "description": "The OWASP Mobile Application Security Verification Standard." },
+    { "slug": "keystore", "name": "Keystore", "description": "Android Keystore and hardware-backed key material." },
+    { "slug": "http", "name": "HTTP", "description": "HTTP semantics, proxies and request smuggling surfaces." },
+    { "slug": "authn", "name": "Authentication", "description": "Authentication flows, tokens and session handling." },
+    { "slug": "static-analysis", "name": "Static Analysis", "description": "Reading code and binaries without running them." },
+    { "slug": "dynamic-analysis", "name": "Dynamic Analysis", "description": "Observing software while it runs." },
+    { "slug": "kotlin", "name": "Kotlin", "description": "Kotlin and the JVM toolchain." },
+    { "slug": "python", "name": "Python", "description": "Python tooling and automation." },
+    { "slug": "emulation", "name": "Emulation", "description": "Emulators, sandboxes and instrumented runtimes." }
+  ],
+  "series": [
+    {
+      "slug": "android-storage",
+      "name": "Android Storage Under Pressure",
+      "description": "A three-part examination of where Android applications actually put sensitive data, and what survives an attacker with filesystem access."
+    }
+  ]
+}

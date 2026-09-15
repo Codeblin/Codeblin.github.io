@@ -1,0 +1,76 @@
+---
+import { renderInline, type Block } from '@codeblin/content';
+
+interface Props {
+  block: Extract<Block, { type: 'heading' }>;
+}
+
+const { block } = Astro.props;
+const Tag = `h${block.level}` as 'h2' | 'h3' | 'h4';
+const html = renderInline(block.text);
+---
+
+<Tag id={block.anchor} class="heading" data-level={block.level}>
+  <a class="heading__anchor" href={`#${block.anchor}`} aria-label={`Link to ${block.text}`}>
+    <span class="heading__mark micro" aria-hidden="true">§</span>
+  </a>
+  <span set:html={html} />
+</Tag>
+
+<style>
+  .heading {
+    position: relative;
+    font-family: var(--font-display);
+    font-weight: var(--w-display);
+    letter-spacing: var(--tr-heading);
+    line-height: var(--lh-heading);
+    color: var(--bone);
+    scroll-margin-block-start: calc(var(--masthead-h) + var(--s-8));
+  }
+
+  /* Extra air above a heading, but never above the first block in a body. */
+  .heading:not(:first-child) {
+    margin-block-start: var(--s-12) !important;
+  }
+
+  .heading[data-level="2"] {
+    font-size: var(--fs-display-3);
+    padding-block-end: var(--s-3);
+    border-block-end: var(--bw) solid var(--hair);
+  }
+
+  .heading[data-level="3"] {
+    font-size: var(--fs-h2);
+  }
+
+  .heading[data-level="4"] {
+    font-size: var(--fs-h3);
+    color: var(--ash);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .heading__anchor {
+    position: absolute;
+    inset-inline-end: 100%;
+    padding-inline-end: var(--s-3);
+    color: transparent;
+    text-decoration: none;
+  }
+
+  .heading:hover .heading__anchor,
+  .heading__anchor:focus-visible {
+    color: inherit;
+  }
+
+  .heading__mark {
+    color: var(--sulfur);
+  }
+
+  /* No room for a hanging anchor beside a narrow column. */
+  @media (width < 60rem) {
+    .heading__anchor {
+      display: none;
+    }
+  }
+</style>

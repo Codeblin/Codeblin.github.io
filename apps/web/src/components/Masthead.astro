@@ -1,0 +1,179 @@
+---
+import Sigil from '~/components/Sigil.astro';
+import { navigation, site } from '~/site.config.ts';
+
+interface Props {
+  path: string;
+}
+
+const { path } = Astro.props;
+
+const isCurrent = (href: string): boolean =>
+  href === '/' ? path === '/' : path.startsWith(href);
+---
+
+<header class="masthead">
+  <div class="masthead__inner shell">
+    <a class="wordmark" href="/" aria-label={`${site.title} — home`}>
+      <span class="wordmark__seal">
+        <Sigil size="16px" />
+      </span>
+      <span class="wordmark__prompt" aria-hidden="true">&gt;</span>
+      <span class="wordmark__name">{site.title}</span>
+      <span class="wordmark__cursor" aria-hidden="true">_</span>
+    </a>
+
+    <nav class="masthead__nav" aria-label="Primary">
+      <ul role="list">
+        {
+          navigation.map((item, index) => (
+            <li>
+              <a
+                class="masthead__link"
+                href={item.href}
+                aria-current={isCurrent(item.href) ? 'page' : undefined}
+              >
+                <span class="masthead__idx micro" aria-hidden="true">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <span class="masthead__label micro">{item.label}</span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <a class="masthead__find micro" href="/search/" aria-label="Search">
+      <span aria-hidden="true">/</span>
+      <span class="masthead__find-label">FIND</span>
+    </a>
+  </div>
+</header>
+
+<style>
+  .masthead {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: var(--z-header);
+    background: var(--void);
+    border-block-end: var(--bw) solid var(--hair);
+  }
+
+  .masthead::after {
+    content: "";
+    display: block;
+    block-size: 1px;
+    background: var(--sulfur-edge);
+  }
+
+  .masthead__inner {
+    block-size: var(--masthead-h);
+    display: flex;
+    align-items: center;
+    gap: var(--s-4);
+  }
+
+  .wordmark {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-inline-end: auto;
+    text-decoration: none;
+    min-inline-size: 0;
+  }
+
+  .wordmark__seal {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+  }
+
+  .wordmark__prompt,
+  .wordmark__cursor {
+    font-family: var(--font-label);
+    font-size: var(--fs-label);
+    color: var(--sulfur);
+    line-height: 1;
+  }
+
+  .wordmark__cursor {
+    animation: cb-blink 1.05s steps(1, end) infinite;
+  }
+
+  .wordmark__name {
+    font-family: var(--font-display);
+    font-weight: var(--w-display);
+    font-size: 0.8125rem;
+    letter-spacing: 0.22em;
+    line-height: 1;
+    color: var(--bone);
+  }
+
+  .masthead__nav ul {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .masthead__link {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    padding: 0.35rem 0.55rem;
+    text-decoration: none;
+    color: var(--ash);
+  }
+
+  .masthead__idx {
+    color: var(--ghost);
+  }
+
+  .masthead__link:hover,
+  .masthead__link:focus-visible {
+    color: var(--bone);
+  }
+
+  .masthead__link:hover .masthead__idx,
+  .masthead__link:focus-visible .masthead__idx,
+  .masthead__link[aria-current="page"] .masthead__idx {
+    color: var(--sulfur);
+  }
+
+  .masthead__link[aria-current="page"] {
+    color: var(--sulfur);
+  }
+
+  .masthead__find {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.55rem;
+    color: var(--dust);
+    text-decoration: none;
+    border: var(--bw) solid var(--hair);
+  }
+
+  .masthead__find:hover,
+  .masthead__find:focus-visible {
+    color: var(--sulfur);
+    border-color: var(--sulfur-edge);
+  }
+
+  @media (width < 48rem) {
+    .masthead__nav {
+      display: none;
+    }
+
+    .masthead__find-label {
+      display: none;
+    }
+
+    .wordmark__name {
+      letter-spacing: 0.14em;
+    }
+  }
+</style>

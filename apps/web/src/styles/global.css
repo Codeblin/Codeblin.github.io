@@ -1,0 +1,14 @@
+/*
+ * Cascade order is declared once, here, before anything is imported. Every
+ * stylesheet in the project opens with `@layer <name>`, so specificity never
+ * decides an outcome and `!important` is never needed.
+ */
+@layer reset, tokens, base, components, utilities;
+
+@import "@codeblin/tokens/tokens.css";
+@import "@codeblin/tokens/reset.css";
+@import "@codeblin/tokens/fonts.css";
+@import "./base.css";
+@import "./motion.css";
+@import "./prose.css";
+@import "./utilities.css";

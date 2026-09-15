@@ -1,0 +1,327 @@
+---
+import { readTaxonomy } from '@codeblin/content';
+import { author, site, social } from '~/site.config.ts';
+
+const { categories } = readTaxonomy();
+const year = new Date().getUTCFullYear();
+---
+
+<footer class="footer">
+  <div class="footer__feed" data-feed>
+    <p class="footer__feed-clock micro" aria-hidden="true">
+      <span class="footer__feed-date" data-feed-date></span>
+      <span data-feed-clock>UTC</span>
+    </p>
+    <div class="footer__feed-mask">
+      <div class="footer__feed-track cb-loop" data-feed-track>
+        <a class="footer__feed-chip" href="https://github.com/advisories" rel="noopener noreferrer">
+          <span class="footer__feed-src micro">GHSA</span>
+          <span class="footer__feed-id micro">Recent advisories</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="shell footer__inner">
+    <div class="footer__identity">
+      <p class="footer__mark display">{site.title}</p>
+      <p class="micro footer__standing">{site.standing}</p>
+      <p class="footer__note">
+        A personal lab book. Written from work actually done. No trackers, no
+        cookies, no audience metrics — just the archive.
+      </p>
+    </div>
+
+    <nav class="footer__group" aria-label="Topics">
+      <p class="label footer__heading">:: Topics</p>
+      <ul role="list">
+        {
+          categories.map((category) => (
+            <li>
+              <a class="footer__link" href={`/categories/${category.slug}/`}>
+                <span class="micro footer__abbr">{category.abbr}</span>
+                {category.name}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <nav class="footer__group" aria-label="Elsewhere">
+      <p class="label footer__heading">:: Elsewhere</p>
+      <ul role="list">
+        {
+          social.map((link) => (
+            <li>
+              <a
+                class="footer__link"
+                href={link.href}
+                rel={link.href.startsWith('http') ? 'noopener noreferrer me' : undefined}
+              >
+                {link.label}
+              </a>
+            </li>
+          ))
+        }
+        <li><a class="footer__link" href={`mailto:${author.email}`}>Email</a></li>
+      </ul>
+    </nav>
+  </div>
+
+  <div class="shell footer__colophon">
+    <p class="micro footer__colophon-line">
+      <span class="footer__box" aria-hidden="true">└</span>
+      <span>{site.title}</span>
+      <span class="footer__sep" aria-hidden="true">·</span>
+      <span>© {year} {author.name}</span>
+      <span class="footer__leader" aria-hidden="true"></span>
+      <span>STATIC ARCHIVE</span>
+      <span class="footer__box" aria-hidden="true">┘</span>
+    </p>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    margin-block-start: var(--s-section);
+    border-block-start: var(--bw) solid var(--sulfur-edge);
+    background: var(--tar);
+  }
+
+  .footer__feed {
+    display: flex;
+    align-items: center;
+    gap: var(--s-4);
+    padding: 0.55rem var(--page-gutter);
+    border-block-end: var(--bw) solid var(--hair);
+    min-inline-size: 0;
+  }
+
+  .footer__feed-clock {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-2);
+    flex-shrink: 0;
+    padding-inline-end: var(--s-4);
+    border-inline-end: var(--bw) solid var(--hair);
+    color: var(--dust);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.1em;
+  }
+
+  .footer__feed-clock::after {
+    content: "UTC";
+  }
+
+  @media (width < 48rem) {
+    .footer__feed {
+      gap: var(--s-2);
+      padding-inline: var(--s-3);
+    }
+
+    .footer__feed-date {
+      display: none;
+    }
+
+    .footer__feed-clock {
+      padding-inline-end: var(--s-2);
+      letter-spacing: 0.06em;
+    }
+
+    .footer__feed-clock::after {
+      content: "Z";
+    }
+  }
+
+  .footer__feed-mask {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    overflow: hidden;
+  }
+
+  .footer__feed-track {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-5);
+    width: max-content;
+    animation: cb-ticker 96s linear infinite;
+  }
+
+  .footer__feed-mask:hover .footer__feed-track,
+  .footer__feed-mask:has(:focus-visible) .footer__feed-track {
+    animation-play-state: paused;
+  }
+
+  .footer__feed[data-static] .footer__feed-mask {
+    overflow-x: auto;
+  }
+
+  .footer__feed[data-static] .footer__feed-track {
+    animation: none;
+  }
+
+  .footer__feed-track :global(.footer__feed-chip) {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--s-2);
+    color: var(--ash);
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+
+  .footer__feed-track :global(.footer__feed-chip::before) {
+    content: "/";
+    color: var(--ghost);
+    margin-inline-end: 0.15rem;
+  }
+
+  .footer__feed-track :global(.footer__feed-chip:hover),
+  .footer__feed-track :global(.footer__feed-chip:focus-visible) {
+    color: var(--bone);
+  }
+
+  .footer__feed-track :global(.footer__feed-src) {
+    color: var(--sulfur);
+  }
+
+  .footer__feed-track :global(.footer__feed-sev) {
+    color: var(--dust);
+  }
+
+  .footer__feed-track :global(.footer__feed-sev[data-tone="critical"]) {
+    color: var(--sev-critical);
+  }
+
+  .footer__feed-track :global(.footer__feed-sev[data-tone="high"]) {
+    color: var(--sev-high);
+  }
+
+  .footer__feed-track :global(.footer__feed-sev[data-tone="medium"]) {
+    color: var(--sev-medium);
+  }
+
+  .footer__feed-track :global(.footer__feed-sev[data-tone="low"]) {
+    color: var(--sev-low);
+  }
+
+  .footer__feed-track :global(.footer__feed-id) {
+    color: var(--bone);
+  }
+
+  .footer__feed-track :global(.footer__feed-chip:hover .footer__feed-id),
+  .footer__feed-track :global(.footer__feed-chip:focus-visible .footer__feed-id) {
+    color: var(--sulfur);
+  }
+
+  .footer__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--s-12) var(--grid-gap);
+    padding-block: var(--s-12);
+  }
+
+  @media (width < 48rem) {
+    .footer__inner {
+      grid-template-columns: 1fr 1fr;
+      gap: var(--s-8) var(--grid-gap);
+    }
+
+    .footer__identity {
+      grid-column: 1 / -1;
+    }
+  }
+
+  .footer__mark {
+    font-size: clamp(2rem, 1.2rem + 3vw, 3.25rem);
+    letter-spacing: 0.06em;
+    line-height: 0.9;
+    color: var(--bone);
+  }
+
+  .footer__standing {
+    margin-block-start: var(--s-2);
+  }
+
+  .footer__note {
+    margin-block-start: var(--s-6);
+    max-inline-size: 42ch;
+    color: var(--ash);
+    font-size: var(--fs-small);
+    line-height: 1.6;
+  }
+
+  .footer__heading {
+    color: var(--sulfur);
+    margin-block-end: var(--s-4);
+  }
+
+  .footer__group ul {
+    display: grid;
+    gap: var(--s-3);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .footer__link {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-2);
+    color: var(--ash);
+    font-size: var(--fs-small);
+    text-decoration: none;
+  }
+
+  .footer__link:hover,
+  .footer__link:focus-visible {
+    color: var(--sulfur);
+  }
+
+  .footer__abbr {
+    color: var(--ghost);
+  }
+
+  .footer__colophon {
+    padding-block: var(--s-6);
+    border-block-start: var(--bw) solid var(--hair);
+  }
+
+  .footer__colophon-line {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    min-inline-size: 0;
+    color: var(--dust);
+  }
+
+  .footer__box {
+    color: var(--sulfur-edge);
+    flex-shrink: 0;
+  }
+
+  .footer__sep {
+    color: var(--ghost);
+  }
+
+  .footer__leader {
+    flex: 1 1 auto;
+    block-size: 1px;
+    min-inline-size: 1rem;
+    background-image: repeating-linear-gradient(
+      90deg,
+      var(--hair) 0 0.35rem,
+      transparent 0.35rem 0.6rem
+    );
+  }
+
+  @media (width < 40rem) {
+    .footer__leader {
+      display: none;
+    }
+
+    .footer__colophon-line {
+      flex-wrap: wrap;
+    }
+  }
+</style>

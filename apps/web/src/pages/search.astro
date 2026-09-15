@@ -1,0 +1,326 @@
+---
+import { listPosts, listProjects, readTaxonomy } from '@codeblin/content';
+
+import PageHeader from '~/components/PageHeader.astro';
+import Base from '~/layouts/Base.astro';
+
+const posts = listPosts();
+const projects = listProjects();
+const { categories } = readTaxonomy();
+
+/** Suggested entry points so an empty search field is never a dead end. */
+const suggestions = [
+  ...categories.slice(0, 4).map((category) => category.name.toLowerCase()),
+  ...[...new Set(posts.flatMap((post) => post.frontmatter.tags))].slice(0, 5),
+];
+---
+
+<Base
+  title="Search"
+  description="Search every article and project by title, topic, tag or body text."
+  noindex
+>
+  <PageHeader
+    eyebrow="QUERY"
+    title="Search"
+    meta={`${posts.length + projects.length} INDEXED`}
+    lede="Full-text across every record. Titles and tags rank highest; code and terminal output are indexed too."
+  />
+
+  <div class="shell search">
+    <form class="search__form" role="search" data-search>
+      <label class="search__label label" for="search-input">
+        <span class="search__prompt" aria-hidden="true">&gt;</span>
+        Query
+      </label>
+      <div class="search__field">
+        <input
+          class="search__input"
+          id="search-input"
+          name="q"
+          type="search"
+          autocomplete="off"
+          autocorrect="off"
+          spellcheck="false"
+          placeholder="frida, certificate pinning, CWE-312…"
+          data-search-input
+        />
+        <span class="search__caret" aria-hidden="true"></span>
+      </div>
+    </form>
+
+    <p class="search__status micro" data-search-status role="status" aria-live="polite">
+      Awaiting query.
+    </p>
+
+    <noscript>
+      <p class="search__noscript">
+        Search needs JavaScript. The <a href="/archive/">archive</a> lists every record without it.
+      </p>
+    </noscript>
+
+    <ol class="search-results" role="list" data-search-results></ol>
+
+    <div class="search__empty" data-search-empty hidden>
+      <p class="micro">No match. Try a broader term:</p>
+      <ul class="search__suggestions" role="list">
+        {
+          suggestions.map((term) => (
+            <li>
+              <a class="label" href={`/search/?q=${encodeURIComponent(term)}`}>
+                {term}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+</Base>
+
+<script>
+  import { initSearch } from '~/scripts/search.ts';
+  initSearch();
+</script>
+
+<style>
+  .search {
+    display: grid;
+    gap: var(--s-5);
+  }
+
+  .search__form {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: baseline;
+    gap: var(--s-3);
+    padding-block-end: var(--s-3);
+    max-inline-size: 52rem;
+    overflow: hidden;
+  }
+
+  .search__form::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    inline-size: 42%;
+    background: linear-gradient(90deg, transparent, var(--sulfur-veil), transparent);
+    transform: translate3d(-120%, 0, 0);
+    pointer-events: none;
+    animation: cb-search-scan 640ms var(--ease-enter) 80ms both;
+  }
+
+  .search__form::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: 0;
+    block-size: 1px;
+    background: var(--hair-lit);
+    transform-origin: left;
+    animation: cb-draw-x var(--dur-5) var(--ease-enter) both;
+  }
+
+  .search__form:focus-within::after {
+    background: var(--sulfur);
+  }
+
+  .search__label {
+    display: flex;
+    gap: var(--s-2);
+    color: var(--dust);
+  }
+
+  .search__prompt {
+    color: var(--sulfur);
+    animation: cb-glitch-hover 420ms steps(2, jump-none) 60ms both;
+  }
+
+  .search__field {
+    display: flex;
+    align-items: baseline;
+    gap: 0.15rem;
+    min-inline-size: 0;
+  }
+
+  .search__input {
+    font-family: var(--font-mono);
+    font-size: clamp(1.25rem, 3vw, 1.75rem);
+    color: var(--bone);
+    background: none;
+    border: 0;
+    padding: 0;
+    inline-size: 100%;
+    caret-color: var(--sulfur);
+  }
+
+  .search__input::placeholder {
+    color: var(--ghost);
+  }
+
+  .search__input:focus {
+    outline: none;
+  }
+
+  .search__caret {
+    flex-shrink: 0;
+    inline-size: 0.55ch;
+    block-size: 1.05em;
+    background: var(--sulfur);
+    visibility: hidden;
+  }
+
+  .search__form:focus-within .search__input:placeholder-shown + .search__caret {
+    visibility: visible;
+    animation: cb-blink 1.05s steps(1, end) infinite;
+  }
+
+  .search__status {
+    color: var(--dust);
+  }
+
+  .search__noscript {
+    color: var(--ash);
+  }
+
+  .search__empty {
+    display: grid;
+    gap: var(--s-3);
+    color: var(--dust);
+    padding-block: var(--s-6);
+  }
+
+  .search__suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .search__suggestions a {
+    display: inline-block;
+    padding: var(--s-2) var(--s-3);
+    border: var(--bw) solid var(--hair);
+    color: var(--ash);
+    text-decoration: none;
+    animation: cb-hit-in 280ms var(--ease-enter) both;
+  }
+
+  .search__suggestions a:hover {
+    color: var(--bone);
+    border-color: var(--hair-lit);
+  }
+</style>
+
+<!--
+  Result markup is injected by the client, so it cannot carry Astro's scoped
+  attribute. These rules are global but namespaced under .search-results.
+-->
+<style is:global>
+  .search-results {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-block-start: var(--bw) solid var(--hair);
+  }
+
+  .search-results:empty {
+    border-block-start: 0;
+  }
+
+  .hit {
+    border-block-end: var(--bw) solid var(--hair);
+    animation: cb-hit-in 320ms var(--ease-enter) both;
+    animation-delay: calc(min(var(--i, 0), 12) * 28ms);
+  }
+
+  .hit__link {
+    position: relative;
+    display: grid;
+    grid-template-columns: 3rem minmax(0, 1fr);
+    gap: var(--s-4);
+    padding: var(--s-4) var(--s-2);
+    text-decoration: none;
+  }
+
+  .hit__link::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    inline-size: 2px;
+    background: var(--sulfur);
+    transform: scaleY(0);
+    transform-origin: top;
+    animation: cb-draw-y 280ms var(--ease-enter) both;
+    animation-delay: calc(min(var(--i, 0), 12) * 28ms);
+  }
+
+  .hit__link:hover,
+  .hit__link:focus-visible {
+    background: var(--tar);
+  }
+
+  .hit__index {
+    color: var(--ghost);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hit__link:hover .hit__index {
+    color: var(--sulfur);
+  }
+
+  .hit__main {
+    display: grid;
+    gap: var(--s-2);
+    min-inline-size: 0;
+  }
+
+  .hit__kicker {
+    color: var(--dust);
+  }
+
+  .hit__dot {
+    color: var(--ghost);
+  }
+
+  .hit__title {
+    font-family: var(--font-display);
+    font-size: var(--fs-h4);
+    font-weight: var(--w-semibold);
+    color: var(--bone);
+    line-height: 1.2;
+  }
+
+  .hit__sub {
+    color: var(--ash);
+    font-size: var(--fs-small);
+    line-height: 1.5;
+  }
+
+  .hit__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+  }
+
+  .hit__tag {
+    color: var(--dust);
+  }
+
+  .hit__tag::before {
+    content: '#';
+    color: var(--ghost);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hit,
+    .hit__link::before {
+      animation: none;
+    }
+  }
+</style>

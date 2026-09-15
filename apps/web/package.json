@@ -1,0 +1,25 @@
+{
+  "name": "@codeblin/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The publication — static Astro site deployed to GitHub Pages.",
+  "scripts": {
+    "dev": "astro dev --port 4321 --host localhost",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/rss": "^4.0.19",
+    "@astrojs/sitemap": "^3.7.4",
+    "@codeblin/content": "^0.1.0",
+    "@codeblin/tokens": "^0.1.0",
+    "@fontsource-variable/archivo": "^5.3.0",
+    "@fontsource-variable/martian-mono": "^5.3.0",
+    "@fontsource-variable/newsreader": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "astro": "^7.2.10",
+    "shiki": "^4.4.3"
+  }
+}

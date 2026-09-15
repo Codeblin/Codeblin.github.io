@@ -1,0 +1,168 @@
+---
+import { listProjects, type LoadedProject } from '@codeblin/content';
+import type { GetStaticPaths } from 'astro';
+
+import BlockRenderer from '~/blocks/BlockRenderer.astro';
+import DotLeader from '~/components/DotLeader.astro';
+import Frame from '~/components/Frame.astro';
+import TableOfContents from '~/components/TableOfContents.astro';
+import Base from '~/layouts/Base.astro';
+import { monthStamp, recordNumber } from '~/lib/format.ts';
+
+export const getStaticPaths = (() => {
+  return listProjects().map((project) => ({
+    params: { slug: project.slug },
+    props: { project },
+  }));
+}) satisfies GetStaticPaths;
+
+interface Props {
+  project: LoadedProject;
+}
+
+const { project } = Astro.props;
+const { frontmatter } = project;
+---
+
+<Base title={frontmatter.name} description={frontmatter.tagline} ogType="article" preloadCodeFont>
+  <article class="project-page">
+    <header class="project-page__head shell">
+      <nav class="project-page__trail" aria-label="Breadcrumb">
+        <a class="micro" href="/projects/">PROJECTS</a>
+        <span class="micro project-page__record">{recordNumber(frontmatter.record)}</span>
+      </nav>
+
+      <h1 class="project-page__name display" data-vt-title>{frontmatter.name}</h1>
+      <p class="project-page__tagline">{frontmatter.tagline}</p>
+
+      <dl class="project-page__facts">
+        <DotLeader label="Status" value={frontmatter.status.toUpperCase()} />
+        <DotLeader label="Started" value={monthStamp(frontmatter.startedAt)} />
+        <DotLeader label="Stack" value={frontmatter.technologies.join(' · ')} />
+        {
+          frontmatter.repository && (
+            <DotLeader label="Source" value="REPOSITORY ↗" href={frontmatter.repository} />
+          )
+        }
+        {
+          frontmatter.homepage && (
+            <DotLeader label="Homepage" value="VISIT ↗" href={frontmatter.homepage} />
+          )
+        }
+      </dl>
+    </header>
+
+    {
+      frontmatter.cover && (
+        <div class="project-page__cover shell">
+          <Frame
+            kind="projects"
+            slug={project.slug}
+            src={frontmatter.cover.src}
+            alt={frontmatter.cover.alt}
+            duotone={frontmatter.cover.duotone ?? true}
+            widths={[800, 1200, 1800]}
+            sizes="(min-width: 90rem) 86rem, 100vw"
+            loading="eager"
+          />
+        </div>
+      )
+    }
+
+    <div class="project-page__grid shell">
+      <aside class="project-page__rail">
+        <TableOfContents headings={project.headings} />
+      </aside>
+      <div class="project-page__body">
+        <BlockRenderer blocks={project.blocks} kind="projects" slug={project.slug} />
+      </div>
+    </div>
+  </article>
+</Base>
+
+<style>
+  .project-page__head {
+    display: grid;
+    gap: var(--s-4);
+    padding-block: var(--s-12) var(--s-8);
+  }
+
+  .project-page__trail {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--s-3);
+  }
+
+  .project-page__trail a {
+    color: var(--dust);
+    text-decoration: none;
+  }
+
+  .project-page__trail a:hover {
+    color: var(--bone);
+  }
+
+  .project-page__record {
+    color: var(--sulfur);
+  }
+
+  .project-page__name {
+    font-size: var(--fs-display-2);
+    color: var(--bone);
+  }
+
+  .project-page__tagline {
+    max-inline-size: 58ch;
+    font-size: calc(var(--fs-body) * 1.12);
+    line-height: 1.55;
+    color: var(--ash);
+  }
+
+  .project-page__facts {
+    display: grid;
+    gap: var(--s-1);
+    max-inline-size: 42rem;
+    margin-block-start: var(--s-4);
+    padding-block-start: var(--s-4);
+    border-block-start: var(--bw) solid var(--hair);
+  }
+
+  .project-page__cover {
+    margin-block-end: var(--s-12);
+  }
+
+  .project-page__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-12);
+  }
+
+  @media (width >= 62rem) {
+    .project-page__grid {
+      grid-template-columns: minmax(0, var(--measure)) minmax(14rem, 20rem);
+      gap: var(--s-16);
+      justify-content: start;
+      padding-inline-start: clamp(0rem, 4vw, 6rem);
+    }
+
+    .project-page__rail {
+      order: 2;
+    }
+  }
+
+  .project-page__rail {
+    display: none;
+  }
+
+  @media (width >= 62rem) {
+    .project-page__rail {
+      display: block;
+    }
+  }
+
+  .project-page__body {
+    min-inline-size: 0;
+    max-inline-size: var(--measure);
+    --wide-width: 58rem;
+  }
+</style>

@@ -1,0 +1,74 @@
+---
+import type { Block } from '@codeblin/content';
+
+interface Props {
+  block: Extract<Block, { type: 'embed' }>;
+}
+
+const { block } = Astro.props;
+
+/**
+ * Embeds render as a link card, never an iframe.
+ *
+ * A third-party frame would load their scripts, set their cookies, and force
+ * `frame-src` open in the Content Security Policy — on a site that promises no
+ * trackers. The reader gets a labelled card and one click; see SECURITY.md.
+ */
+const providers = {
+  youtube: {
+    label: 'YOUTUBE',
+    href: (ref: string) => `https://www.youtube.com/watch?v=${ref}`,
+    note: 'Opens on youtube.com',
+  },
+  gist: {
+    label: 'GIST',
+    href: (ref: string) => `https://gist.github.com/${ref}`,
+    note: 'Opens on gist.github.com',
+  },
+} as const;
+
+const provider = providers[block.provider];
+---
+
+<a
+  class="embed bracketed"
+  href={provider.href(block.ref)}
+  rel="noopener noreferrer"
+  target="_blank"
+>
+  <span class="embed__provider micro">{provider.label}</span>
+  <span class="embed__title">{block.title ?? provider.href(block.ref)}</span>
+  <span class="embed__note micro">{provider.note} ↗</span>
+</a>
+
+<style>
+  .embed {
+    display: grid;
+    gap: var(--s-2);
+    padding: var(--s-4) var(--s-5);
+    border: var(--bw) solid var(--hair);
+    background: var(--tar);
+    text-decoration: none;
+  }
+
+  .embed:hover,
+  .embed:focus-visible {
+    border-color: var(--hair-lit);
+  }
+
+  .embed__provider {
+    color: var(--sulfur);
+  }
+
+  .embed__title {
+    color: var(--bone);
+    font-family: var(--font-display);
+    font-weight: var(--w-semibold);
+    font-size: var(--fs-h3);
+    line-height: var(--lh-heading);
+  }
+
+  .embed__note {
+    color: var(--dust);
+  }
+</style>

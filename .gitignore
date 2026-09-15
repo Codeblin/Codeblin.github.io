@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.astro/
+.vite/
+*.tsbuildinfo
+
+# Generated font files (copied from Fontsource by scripts/build-fonts.mjs)
+apps/*/public/fonts/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*

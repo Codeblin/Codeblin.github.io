@@ -1,0 +1,175 @@
+---
+import type { Block } from '@codeblin/content';
+
+interface Props {
+  block: Extract<Block, { type: 'filetree' }>;
+}
+
+const { block } = Astro.props;
+const entries = block.entries;
+
+type Rail = 'blank' | 'pipe' | 'fork' | 'end';
+
+/**
+ * Guides are CSS rails, not box-drawing glyphs. The latin Plex Mono file has
+ * no U+2500 range, so `│ └ ├` used to fall back to a proportional face and
+ * the tree collapsed into a tall, misaligned stack.
+ *
+ * An entry is last at its depth when no later entry shares that depth
+ * before the tree pops above it. A pipe is drawn at an ancestor level only
+ * while that ancestor still has siblings below.
+ */
+const isLastAt = entries.map((entry, index) => {
+  for (let next = index + 1; next < entries.length; next += 1) {
+    const depth = entries[next]?.depth ?? 0;
+    if (depth < entry.depth) break;
+    if (depth === entry.depth) return false;
+  }
+  return true;
+});
+
+const rows = entries.map((entry, index) => {
+  const rails: Rail[] = [];
+  for (let level = 0; level < entry.depth; level += 1) {
+    let ancestor = -1;
+    for (let back = index - 1; back >= 0; back -= 1) {
+      if ((entries[back]?.depth ?? 0) === level) {
+        ancestor = back;
+        break;
+      }
+    }
+    if (level === entry.depth - 1) {
+      rails.push(isLastAt[index] ? 'end' : 'fork');
+    } else {
+      rails.push(ancestor >= 0 && isLastAt[ancestor] === false ? 'pipe' : 'blank');
+    }
+  }
+  return { entry, rails };
+});
+---
+
+<figure class="tree">
+  <div class="tree__bar">
+    <span class="tree__tag micro">TREE</span>
+    <span class="tree__root label">{block.root}</span>
+    <span class="tree__count micro">{entries.length} NODES</span>
+  </div>
+
+  <div class="tree__body" role="group" aria-label={`File tree, ${block.root}`}>
+    {
+      rows.map(({ entry, rails }) => (
+        <div class="tree__row" data-directory={entry.directory ? '' : undefined}>
+          {rails.map((kind) => (
+            <span class="tree__rail" data-rail={kind} aria-hidden="true"></span>
+          ))}
+          <span class="tree__name">{entry.directory ? `${entry.name}/` : entry.name}</span>
+          {entry.note && <span class="tree__note">@ {entry.note}</span>}
+        </div>
+      ))
+    }
+  </div>
+</figure>
+
+<style>
+  .tree {
+    border: var(--bw) solid var(--hair);
+    background: var(--slate);
+    overflow: hidden;
+  }
+
+  .tree__bar {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-3);
+    padding: var(--s-2) var(--s-3);
+    border-block-end: var(--bw) solid var(--hair);
+    background: var(--tar);
+  }
+
+  .tree__tag {
+    color: var(--sulfur);
+  }
+
+  .tree__root {
+    color: var(--ash);
+    margin-inline-end: auto;
+  }
+
+  .tree__count {
+    color: var(--ghost);
+  }
+
+  .tree__body {
+    margin: 0;
+    padding: var(--s-3) var(--s-4);
+    overflow-x: auto;
+    font-family: var(--font-code);
+    font-size: var(--fs-code);
+    line-height: 1.55;
+  }
+
+  .tree__row {
+    display: flex;
+    align-items: stretch;
+    min-block-size: 1.55em;
+  }
+
+  .tree__rail {
+    position: relative;
+    inline-size: 1.1em;
+    flex-shrink: 0;
+  }
+
+  .tree__rail[data-rail="pipe"]::before,
+  .tree__rail[data-rail="fork"]::before,
+  .tree__rail[data-rail="end"]::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0.45em;
+    border-inline-start: var(--bw) solid var(--ghost);
+  }
+
+  .tree__rail[data-rail="pipe"]::before,
+  .tree__rail[data-rail="fork"]::before {
+    inset-block: 0;
+  }
+
+  .tree__rail[data-rail="end"]::before {
+    inset-block-start: 0;
+    inset-block-end: 50%;
+  }
+
+  .tree__rail[data-rail="fork"]::after,
+  .tree__rail[data-rail="end"]::after {
+    content: "";
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: 0.45em;
+    inset-inline-end: 0;
+    border-block-start: var(--bw) solid var(--ghost);
+  }
+
+  .tree__name {
+    color: var(--ash);
+    padding-inline-start: 0.15em;
+    align-self: center;
+  }
+
+  .tree__row[data-directory] .tree__name {
+    color: var(--bone);
+    font-weight: 600;
+  }
+
+  .tree__note {
+    color: var(--sulfur);
+    padding-inline-start: var(--s-3);
+    align-self: center;
+  }
+
+  @media (width < 48rem) {
+    .tree {
+      margin-inline: calc(var(--page-gutter) * -1);
+      border-inline: 0;
+    }
+  }
+</style>

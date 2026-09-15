@@ -1,0 +1,72 @@
+---
+/**
+ * Dev-only preview of drafts. Production builds emit zero paths here, so the
+ * route cannot leak unpublished work. The CMS iframe points at this.
+ */
+import { listPosts, listProjects, type LoadedPost, type LoadedProject } from '@codeblin/content';
+import type { GetStaticPaths } from 'astro';
+
+import BlockRenderer from '~/blocks/BlockRenderer.astro';
+import Base from '~/layouts/Base.astro';
+
+export const getStaticPaths = (() => {
+  if (!import.meta.env.DEV) return [];
+
+  const posts = listPosts({ includeDrafts: true }).map((post) => ({
+    params: { kind: 'posts', slug: post.slug },
+    props: { kind: 'posts' as const, post, project: undefined },
+  }));
+
+  const projects = listProjects({ includeUnpublished: true }).map((project) => ({
+    params: { kind: 'projects', slug: project.slug },
+    props: { kind: 'projects' as const, post: undefined, project },
+  }));
+
+  return [...posts, ...projects];
+}) satisfies GetStaticPaths;
+
+interface Props {
+  kind: 'posts' | 'projects';
+  post?: LoadedPost;
+  project?: LoadedProject;
+}
+
+const { kind, post, project } = Astro.props;
+const title = kind === 'posts' ? (post?.frontmatter.title ?? 'Draft') : (project?.frontmatter.name ?? 'Draft');
+const blocks = kind === 'posts' ? (post?.blocks ?? []) : (project?.blocks ?? []);
+const slug = kind === 'posts' ? (post?.slug ?? '') : (project?.slug ?? '');
+---
+
+<Base title={`Preview · ${title}`} description="Local draft preview. Not indexed." noindex>
+  <p class="shell preview-banner label">
+    <span class="preview-banner__slash" aria-hidden="true">/</span>
+    LOCAL PREVIEW — NOT PUBLISHED
+  </p>
+  <article class="shell preview-body">
+    <h1 class="display preview-title">{title}</h1>
+    <BlockRenderer blocks={blocks} kind={kind} slug={slug} />
+  </article>
+</Base>
+
+<style>
+  .preview-banner {
+    padding-block: var(--s-4);
+    color: var(--sulfur);
+    border-block-end: var(--bw) solid var(--hair);
+  }
+
+  .preview-banner__slash {
+    color: var(--sulfur);
+  }
+
+  .preview-title {
+    font-size: var(--fs-display-3);
+    color: var(--bone);
+    margin-block: var(--s-8) var(--s-6);
+  }
+
+  .preview-body {
+    max-inline-size: var(--measure);
+    padding-block-end: var(--s-24);
+  }
+</style>

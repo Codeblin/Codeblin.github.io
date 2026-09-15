@@ -1,0 +1,331 @@
+---
+import { listPosts, listProjects, readTaxonomy } from '@codeblin/content';
+
+import ArticleCard from '~/components/ArticleCard.astro';
+import ProjectCard from '~/components/ProjectCard.astro';
+import RecordRow from '~/components/RecordRow.astro';
+import SectionHead from '~/components/SectionHead.astro';
+import Base from '~/layouts/Base.astro';
+import { stampDate } from '~/lib/format.ts';
+import { listing, site } from '~/site.config.ts';
+
+const posts = listPosts();
+const projects = listProjects();
+const { categories } = readTaxonomy();
+
+const featured = posts.find((post) => post.frontmatter.featured);
+const feature = featured ?? posts[0];
+const rest = posts.filter((post) => post.slug !== feature?.slug);
+const recent = rest.slice(0, listing.homepageRecent);
+const archiveTail = rest.slice(listing.homepageRecent, listing.homepageRecent + 6);
+
+const lastUpdated = posts[0]?.frontmatter.updatedAt ?? posts[0]?.frontmatter.publishedAt;
+
+const countByCategory = new Map<string, number>();
+for (const post of posts) {
+  const slug = post.frontmatter.category;
+  countByCategory.set(slug, (countByCategory.get(slug) ?? 0) + 1);
+}
+
+const pad = (value: string, width: number): string => value.padEnd(width, '.');
+---
+
+<Base title={site.title} description={site.description}>
+  <section class="hero shell">
+    <div class="hero__sheet">
+      <aside class="hero__log" aria-label="Session">
+        <p class="hero__log-k micro">:: IDENTITY</p>
+        <p class="hero__log-v micro">{site.title}</p>
+        <p class="hero__log-v micro">{site.standing}</p>
+
+        <p class="hero__log-k micro">:: WORKING</p>
+        <p class="hero__log-v micro">android internals</p>
+        <p class="hero__log-v micro">reverse engineering</p>
+        <p class="hero__log-v micro">malware analysis</p>
+
+        <p class="hero__log-k micro">:: STATE</p>
+        <p class="hero__log-v micro">{pad('records', 14)} {posts.length}</p>
+        <p class="hero__log-v micro">{pad('projects', 14)} {projects.length}</p>
+        <p class="hero__log-v micro">{pad('topics', 14)} {categories.length}</p>
+        <p class="hero__log-v micro">{pad('last write', 14)} {stampDate(lastUpdated)}</p>
+      </aside>
+
+      <div class="hero__stage">
+        <p class="hero__cap micro">
+          <span aria-hidden="true">┌</span>
+          <span data-decode>INDEX 0x00 — {posts.length} RECORDS ACTIVE</span>
+          <span class="hero__leader" aria-hidden="true"></span>
+          <span aria-hidden="true">┐</span>
+        </p>
+
+        <h1 class="hero__word display">{site.title}</h1>
+        <p class="hero__statement display">Taking software apart, in public.</p>
+        <p class="hero__lede">
+          I write from work actually done — the traces, the findings, the dead ends.
+          Long-form notes on Android internals, application security, reverse engineering
+          and malware. This is a lab book, not a blog.
+        </p>
+
+        <p class="hero__cap hero__cap--foot micro" aria-hidden="true">
+          <span>└</span>
+          <span class="hero__leader"></span>
+          <span>┘</span>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  {
+    feature && (
+      <section class="shell section">
+        <SectionHead
+          title="Latest research"
+          meta={`0x${(posts.length - 1).toString(16).toUpperCase().padStart(2, '0')}`}
+          href="/research/"
+          linkLabel="All research"
+        />
+        <ArticleCard post={feature} variant="feature" />
+      </section>
+    )
+  }
+
+  {
+    recent.length > 0 && (
+      <section class="shell section">
+        <SectionHead title="Recent" meta={`${recent.length} SHOWN`} />
+        <div class="grid">
+          {recent.map((post) => (
+            <ArticleCard post={post} revealGroup="recent" />
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  {
+    projects.length > 0 && (
+      <section class="shell section">
+        <SectionHead
+          title="Selected projects"
+          meta={`${projects.length} TOTAL`}
+          href="/projects/"
+          linkLabel="All projects"
+        />
+        <div class="grid grid--projects">
+          {projects.slice(0, listing.homepageProjects).map((project) => (
+            <ProjectCard project={project} revealGroup="projects" />
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  <section class="shell section">
+    <SectionHead title="Topics" meta="BY CATEGORY" />
+    <ul class="topics" role="list">
+      {
+        categories.map((category) => (
+          <li>
+            <a class="topic bracketed hud-edge" href={`/categories/${category.slug}/`}>
+              <span class="topic__abbr micro">{category.abbr}</span>
+              <span class="topic__name display">{category.name}</span>
+              <span class="topic__desc">{category.description}</span>
+              <span class="topic__count micro">
+                {countByCategory.get(category.slug) ?? 0} RECORDS
+              </span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  {
+    archiveTail.length > 0 && (
+      <section class="shell section">
+        <SectionHead title="Further back" href="/archive/" linkLabel="Full archive" />
+        <div class="rows">
+          {archiveTail.map((post) => (
+            <RecordRow post={post} revealGroup="tail" />
+          ))}
+        </div>
+      </section>
+    )
+  }
+</Base>
+
+<style>
+  .hero {
+    padding-block: var(--s-6) var(--s-8);
+  }
+
+  .hero__sheet {
+    display: grid;
+    grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr);
+    border: var(--bw) solid var(--sulfur-edge);
+    background: var(--tar);
+  }
+
+  .hero__log {
+    display: grid;
+    align-content: start;
+    gap: 0.15rem;
+    padding: var(--s-5);
+    border-inline-end: var(--bw) solid var(--hair);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hero__log-k {
+    margin-block-start: var(--s-4);
+    color: var(--sulfur);
+  }
+
+  .hero__log-k:first-child {
+    margin-block-start: 0;
+  }
+
+  .hero__log-v {
+    color: var(--ash);
+    padding-inline-start: var(--s-3);
+  }
+
+  .hero__stage {
+    display: grid;
+    align-content: start;
+    gap: var(--s-4);
+    padding: var(--s-5) var(--s-6);
+    min-inline-size: 0;
+  }
+
+  .hero__cap {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    color: var(--dust);
+    min-inline-size: 0;
+  }
+
+  .hero__cap span:first-child,
+  .hero__cap span:last-child {
+    color: var(--sulfur-edge);
+    flex-shrink: 0;
+  }
+
+  .hero__leader {
+    flex: 1 1 auto;
+    block-size: 1px;
+    min-inline-size: 1rem;
+    background-image: repeating-linear-gradient(
+      90deg,
+      var(--hair) 0 0.35rem,
+      transparent 0.35rem 0.6rem
+    );
+  }
+
+  .hero__word {
+    position: relative;
+    width: fit-content;
+    font-size: var(--fs-display-1);
+    line-height: 0.86;
+    letter-spacing: 0.04em;
+    color: var(--bone);
+  }
+
+  .hero__word::after {
+    content: "";
+    display: block;
+    block-size: 2px;
+    margin-block-start: 0.12em;
+    background: var(--sulfur);
+    transform-origin: left;
+    animation: cb-draw-x var(--dur-5) var(--ease-enter) 120ms both;
+  }
+
+  .hero__statement {
+    font-size: var(--fs-display-3);
+    max-inline-size: 18ch;
+    color: var(--sulfur);
+  }
+
+  .hero__lede {
+    max-inline-size: 46ch;
+    color: var(--ash);
+    font-size: var(--fs-small);
+    line-height: 1.6;
+  }
+
+  @media (width < 48rem) {
+    .hero__sheet {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .hero__log {
+      border-inline-end: 0;
+      border-block-end: var(--bw) solid var(--hair);
+    }
+  }
+
+  .section {
+    margin-block-start: var(--s-section);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr));
+    gap: 3px;
+  }
+
+  .grid--projects {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+  }
+
+  .rows {
+    border-block-start: var(--bw) solid var(--hair);
+  }
+
+  .topics {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+    gap: 3px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .topic {
+    display: grid;
+    gap: var(--s-2);
+    block-size: 100%;
+    padding: var(--s-5);
+    border: var(--bw) solid var(--hair);
+    background: var(--tar);
+    text-decoration: none;
+  }
+
+  .topic:hover,
+  .topic:focus-visible {
+    border-color: var(--sulfur-edge);
+    background: var(--carbon);
+  }
+
+  .topic__abbr {
+    color: var(--sulfur);
+  }
+
+  .topic__name {
+    font-size: var(--fs-h2);
+    color: var(--bone);
+    line-height: 1.05;
+  }
+
+  .topic__desc {
+    color: var(--ash);
+    font-size: var(--fs-small);
+    line-height: 1.55;
+  }
+
+  .topic__count {
+    margin-block-start: var(--s-2);
+    color: var(--ghost);
+  }
+</style>

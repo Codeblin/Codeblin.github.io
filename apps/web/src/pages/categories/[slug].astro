@@ -1,0 +1,60 @@
+---
+import { listPosts, readTaxonomy, type Category, type LoadedPost } from '@codeblin/content';
+import type { GetStaticPaths } from 'astro';
+
+import ArticleCard from '~/components/ArticleCard.astro';
+import PageHeader from '~/components/PageHeader.astro';
+import Base from '~/layouts/Base.astro';
+
+export const getStaticPaths = (() => {
+  const posts = listPosts();
+  return readTaxonomy().categories.map((category) => ({
+    params: { slug: category.slug },
+    props: {
+      category,
+      posts: posts.filter((post) => post.frontmatter.category === category.slug),
+    },
+  }));
+}) satisfies GetStaticPaths;
+
+interface Props {
+  category: Category;
+  posts: LoadedPost[];
+}
+
+const { category, posts } = Astro.props;
+---
+
+<Base title={category.name} description={category.description}>
+  <PageHeader
+    eyebrow={`CATEGORY ${category.abbr}`}
+    title={category.name}
+    meta={`${posts.length} ${posts.length === 1 ? 'RECORD' : 'RECORDS'}`}
+    lede={category.description}
+  />
+
+  {
+    posts.length > 0 ? (
+      <div class="shell listing">
+        {posts.map((post) => (
+          <ArticleCard post={post} revealGroup="category" />
+        ))}
+      </div>
+    ) : (
+      <p class="shell empty label">Nothing published under this category yet.</p>
+    )
+  }
+</Base>
+
+<style>
+  .listing {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+    gap: var(--grid-gap);
+  }
+
+  .empty {
+    color: var(--dust);
+    padding-block: var(--s-16);
+  }
+</style>

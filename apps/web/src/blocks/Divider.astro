@@ -1,0 +1,41 @@
+---
+import type { Block } from '@codeblin/content';
+
+interface Props {
+  block: Extract<Block, { type: 'divider' }>;
+}
+
+const { block } = Astro.props;
+---
+
+{
+  block.variant === 'gap' ? (
+    <div class="divider-gap" role="separator" />
+  ) : (
+    <hr class="divider" data-variant={block.variant} />
+  )
+}
+
+<style>
+  .divider {
+    block-size: 0;
+    border: 0;
+    margin-block: var(--s-4);
+  }
+
+  .divider[data-variant="rule"] {
+    border-block-start: var(--bw) solid var(--hair);
+  }
+
+  /* Dots read as a softer break — a pause rather than a section change. */
+  .divider[data-variant="dots"] {
+    block-size: 1px;
+    background-image: radial-gradient(circle, var(--ghost) 1px, transparent 1px);
+    background-size: 6px 1px;
+    background-repeat: repeat-x;
+  }
+
+  .divider-gap {
+    block-size: var(--s-12);
+  }
+</style>

@@ -1,0 +1,170 @@
+/*
+ * SUBSTRATE — design tokens
+ *
+ * The single source of truth for colour, type, space, geometry and motion.
+ * Nothing in either application may hard-code a value that exists here.
+ *
+ * See DESIGN.md for the reasoning behind each group.
+ */
+
+@layer tokens {
+  :root {
+    /* ── Surfaces ─────────────────────────────────────────────────────── */
+    --void: #08080a;
+    --tar: #0c0c10;
+    --slate: #131318;
+    --carbon: #1a1a20;
+    --hair: #23232b;
+    --hair-lit: #373742;
+
+    /* ── Ink ──────────────────────────────────────────────────────────── */
+    --bone: #e9e5dc;
+    --ash: #9b9b93;
+    --dust: #6b6b66;
+    --ghost: #43433f;
+
+    /* ── Accent ───────────────────────────────────────────────────────── */
+    --sulfur: #cfd84e;
+    --sulfur-ink: #0a0a08;
+    --sulfur-veil: rgb(207 216 78 / 12%);
+    --sulfur-edge: rgb(207 216 78 / 38%);
+
+    /* CMS-only destructive accent. The public site never uses this. */
+    --ember: #e24a32;
+    --ember-ink: #140806;
+
+    /* ── Severity — content semantics only, never chrome ──────────────── */
+    --sev-critical: #ff4438;
+    --sev-high: #ff8a3d;
+    --sev-medium: #e0a73c;
+    --sev-low: #6fa8ff;
+    --sev-info: #8e8e88;
+
+    /* ── Type families ────────────────────────────────────────────────── */
+    --font-display: "Archivo", "Archivo Fallback", "Helvetica Neue", arial, sans-serif;
+    --font-body: "Newsreader", "Newsreader Fallback", "Iowan Old Style", georgia, serif;
+    --font-label: "Martian Mono", "SFMono-Regular", consolas, monospace;
+    --font-code: "IBM Plex Mono", "SFMono-Regular", consolas, "Liberation Mono", monospace;
+
+    /* ── Type scale ───────────────────────────────────────────────────── */
+    --fs-display-1: clamp(2.9rem, 1.1rem + 7.4vw, 7.5rem);
+    --fs-display-2: clamp(2.1rem, 1.1rem + 4.4vw, 4.25rem);
+    --fs-display-3: clamp(1.6rem, 1.1rem + 2.2vw, 2.5rem);
+    --fs-h2: clamp(1.35rem, 1.1rem + 0.9vw, 1.6rem);
+    --fs-h3: 1.1875rem;
+    --fs-h4: 1rem;
+    --fs-body: 1.0625rem;
+    --fs-small: 0.9375rem;
+    --fs-code: 0.8125rem;
+    --fs-label: 0.6875rem;
+    --fs-micro: 0.625rem;
+
+    /* ── Line heights ─────────────────────────────────────────────────── */
+    --lh-display: 0.94;
+    --lh-tight: 1.15;
+    --lh-heading: 1.25;
+    --lh-body: 1.72;
+    --lh-code: 1.62;
+    --lh-label: 1.4;
+
+    /* ── Tracking ─────────────────────────────────────────────────────── */
+    --tr-display: -0.036em;
+    --tr-heading: -0.012em;
+    --tr-body: 0;
+    --tr-label: 0.14em;
+    --tr-micro: 0.18em;
+
+    /* ── Weights ──────────────────────────────────────────────────────── */
+    --w-body: 400;
+    --w-medium: 500;
+    --w-semibold: 600;
+    --w-display: 700;
+    --w-black: 800;
+
+    /* ── Space — 4px base ─────────────────────────────────────────────── */
+    --s-1: 0.25rem;
+    --s-2: 0.5rem;
+    --s-3: 0.75rem;
+    --s-4: 1rem;
+    --s-5: 1.25rem;
+    --s-6: 1.5rem;
+    --s-8: 2rem;
+    --s-12: 3rem;
+    --s-16: 4rem;
+    --s-24: 6rem;
+    --s-32: 8rem;
+    --s-48: 12rem;
+    --s-64: 16rem;
+
+    /* Vertical rhythm between major page sections, fluid. */
+    --s-section: clamp(3.5rem, 2rem + 6vw, 7.5rem);
+
+    /* ── Layout ───────────────────────────────────────────────────────── */
+    --page-max: 90rem; /* 1440px */
+    --page-gutter: clamp(1rem, 0.4rem + 2.4vw, 2rem);
+    --grid-gap: clamp(1rem, 0.6rem + 1.2vw, 1.5rem);
+    --measure: 68ch;
+    --measure-narrow: 54ch;
+
+    /* ── Geometry ─────────────────────────────────────────────────────── */
+    --bw: 1px;
+    --radius: 0;
+    --radius-input: 2px;
+    --notch: 9px;
+    --bracket: 9px;
+    --bracket-weight: 1px;
+
+    /* ── Texture ──────────────────────────────────────────────────────── */
+    --grain-opacity: 0.05;
+    --grid-line: rgb(35 35 43 / 28%);
+
+    /* ── Motion ───────────────────────────────────────────────────────── */
+    --dur-1: 90ms;
+    --dur-2: 140ms;
+    --dur-3: 220ms;
+    --dur-4: 340ms;
+    --dur-5: 560ms;
+    --dur-6: 900ms;
+
+    --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+    --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-std: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-snap: cubic-bezier(0.2, 0.9, 0.25, 1);
+
+    /* Stagger step for list reveals. */
+    --stagger: 30ms;
+
+    /* ── Elevation — borders and fills, never shadows ─────────────────── */
+    --shadow-panel: 0 24px 60px -20px rgb(0 0 0 / 80%);
+
+    /* ── Focus ────────────────────────────────────────────────────────── */
+    --focus-ring: 2px solid var(--sulfur);
+    --focus-offset: 3px;
+
+    /* ── Z index ──────────────────────────────────────────────────────── */
+    --z-grain: 50;
+    --z-sticky: 20;
+    --z-header: 40;
+    --z-frame: 55;
+    --z-overlay: 60;
+    --z-sheet: 70;
+    --z-toast: 90;
+
+    color-scheme: dark;
+    accent-color: var(--sulfur);
+  }
+
+  /*
+   * Motion is opt-out at the token level rather than per component, so a new
+   * component cannot forget to honour the preference.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --dur-3: 90ms;
+      --dur-4: 90ms;
+      --dur-5: 90ms;
+      --dur-6: 90ms;
+      --stagger: 0ms;
+    }
+  }
+}
