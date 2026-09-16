@@ -6,7 +6,7 @@ subtitle: Most pinning implementations fail to one of four mistakes, none of whi
 excerpt: Pinning is easy to implement and easy to implement uselessly. Every failure I
   have found in production came from the same four mistakes — and all four are design
   errors, not crypto errors.
-status: draft
+status: published
 publishedAt: 2026-06-11
 updatedAt: 2026-09-16
 category: mobile-security
