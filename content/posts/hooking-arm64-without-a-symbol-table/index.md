@@ -2,22 +2,21 @@
 record: 8
 title: Hooking arm64 Without a Symbol Table
 subtitle: Finding an interception point in a stripped library when there is no name to attach to
-excerpt: >-
-  Instrumentation tutorials assume you can name the function you want to hook.
-  This is what remains when the symbol table is gone: exports, imports, the JNI
-  table, and why pattern scanning is a last resort rather than a method.
+excerpt: "Instrumentation tutorials assume you can name the function you want to hook.
+  This is what remains when the symbol table is gone: exports, imports, the JNI table,
+  and why pattern scanning is a last resort rather than a method."
 status: draft
+updatedAt: 2026-09-16
 category: reverse-engineering
 tags:
   - frida
   - android
   - dynamic-analysis
-draftNotes: >-
-  Needs the section on PLT/GOT interception rewritten — the current draft
-  conflates import hooking with inline patching. Also want a worked example
-  against a library that resolves its own imports lazily. Do not publish until
-  the pattern-scanning section has been verified on a 16 KB page-size device.
 featured: false
+draftNotes: Needs the section on PLT/GOT interception rewritten — the current draft
+  conflates import hooking with inline patching. Also want a worked example against a
+  library that resolves its own imports lazily. Do not publish until the
+  pattern-scanning section has been verified on a 16 KB page-size device.
 ---
 
 Every dynamic instrumentation guide starts the same way: attach to the process,
