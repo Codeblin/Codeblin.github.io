@@ -3,7 +3,7 @@ import {
   type Block,
   type BlockType,
 } from './schema/blocks.ts';
-import { newBlockId } from './repository/write.ts';
+import { newBlockId } from './ids.ts';
 
 /** A well-formed empty block of the given type, for the editor's insert command. */
 export function emptyBlock(type: BlockType): Block {
@@ -47,7 +47,12 @@ export function emptyBlock(type: BlockType): Block {
     case 'video':
       return { id, type, src: './media/capture.mp4' };
     case 'diagram':
-      return { id, type, source: 'a ──▶ b' };
+      return {
+        id,
+        type,
+        source: ['flowchart LR', '  client --> okhttp', '  okhttp --> pinner', '  pinner --> socket'].join('\n'),
+        caption: 'Diagram',
+      };
     case 'divider':
       return { id, type, variant: 'rule' };
     case 'finding':

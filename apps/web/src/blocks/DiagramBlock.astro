@@ -1,27 +1,50 @@
 ---
 import type { Block } from '@codeblin/content';
+import { looksLikeMermaid } from '@codeblin/content';
 
 interface Props {
   block: Extract<Block, { type: 'diagram' }>;
 }
 
 const { block } = Astro.props;
+const mermaid = looksLikeMermaid(block.source);
+const label = block.caption ?? 'Diagram';
 ---
 
-<figure class="diagram">
-  <pre class="diagram__body" tabindex="0" role="img" aria-label={block.caption ?? 'Diagram'}>{
-    block.source.replace(/\n+$/, '')
-  }</pre>
+<figure class="diagram" data-lang={mermaid ? 'mermaid' : 'ascii'}>
+  {
+    mermaid ? (
+      <div class="diagram__frame" data-diagram-viewport>
+        <div class="diagram__toolbar">
+          <p class="diagram__hint micro">Drag to pan · scroll to zoom</p>
+          <button class="diagram__act micro" type="button" data-diagram-act="out" aria-label="Zoom out">
+            −
+          </button>
+          <button class="diagram__act micro" type="button" data-diagram-act="in" aria-label="Zoom in">
+            +
+          </button>
+          <button class="diagram__act micro" type="button" data-diagram-act="fit">
+            Fit
+          </button>
+          <button class="diagram__act micro" type="button" data-diagram-act="expand" aria-expanded="false">
+            Expand
+          </button>
+        </div>
+        <div class="diagram__stage" data-diagram-stage tabindex="0" role="img" aria-label={label}>
+          <div class="diagram__canvas" data-diagram-canvas></div>
+        </div>
+        <textarea hidden readonly data-mermaid-source>{block.source}</textarea>
+      </div>
+    ) : (
+      <pre class="diagram__body" tabindex="0" role="img" aria-label={label}>
+        {block.source.replace(/\n+$/, '')}
+      </pre>
+    )
+  }
   {block.caption && <figcaption class="diagram__caption label">{block.caption}</figcaption>}
 </figure>
 
 <style>
-  /*
-   * Monospaced ASCII rather than a rendering library: it diffs cleanly, costs
-   * nothing to ship, and matches the rest of the visual language. The caption
-   * is the accessible description, since the art itself is decorative to a
-   * screen reader.
-   */
   .diagram__body {
     margin: 0;
     padding: var(--s-6) var(--s-4);
@@ -31,9 +54,110 @@ const { block } = Astro.props;
     color: var(--ash);
     font-size: var(--fs-code);
     line-height: 1.55;
-    text-align: center;
     scrollbar-width: thin;
     scrollbar-color: var(--hair-lit) transparent;
+    text-align: center;
+  }
+
+  .diagram__frame {
+    position: relative;
+    border: var(--bw) solid var(--hair);
+    background: var(--tar);
+  }
+
+  .diagram__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-3);
+    align-items: center;
+    padding: 0.45rem 0.7rem;
+    border-block-end: var(--bw) solid var(--hair);
+    background: var(--void);
+  }
+
+  .diagram__hint {
+    margin-inline-end: auto;
+    color: var(--dust);
+  }
+
+  .diagram__act {
+    color: var(--ash);
+    letter-spacing: var(--tr-micro);
+    text-transform: uppercase;
+  }
+
+  .diagram__act:hover,
+  .diagram__act:focus-visible {
+    color: var(--sulfur);
+  }
+
+  .diagram__stage {
+    position: relative;
+    overflow: auto;
+    block-size: min(32rem, 70vh);
+    min-block-size: 16rem;
+    touch-action: none;
+    cursor: grab;
+    user-select: none;
+    scrollbar-width: thin;
+    scrollbar-color: var(--hair-lit) transparent;
+  }
+
+  .diagram__stage:focus-visible {
+    outline: var(--bw) solid var(--sulfur);
+    outline-offset: -2px;
+  }
+
+  .diagram__stage[data-dragging] {
+    cursor: grabbing;
+  }
+
+  .diagram__canvas {
+    width: max-content;
+    min-inline-size: 100%;
+    transform-origin: 0 0;
+  }
+
+  .diagram__canvas :global(svg) {
+    display: block;
+    max-inline-size: none;
+    width: auto;
+    height: auto;
+  }
+
+  .diagram__frame[data-ready] .diagram__stage {
+    overflow: hidden;
+  }
+
+  .diagram__frame[data-ready] .diagram__canvas {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    min-inline-size: 0;
+  }
+
+  .diagram__frame[data-expanded] {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-sheet);
+    display: flex;
+    flex-direction: column;
+    padding: 4vh 5vw;
+    background: rgb(8 8 10 / 0.72);
+    border: 0;
+  }
+
+  .diagram__frame[data-expanded] .diagram__toolbar,
+  .diagram__frame[data-expanded] .diagram__stage {
+    border: var(--bw) solid var(--hair-lit);
+    background: var(--tar);
+  }
+
+  .diagram__frame[data-expanded] .diagram__stage {
+    flex: 1;
+    block-size: auto;
+    min-block-size: 0;
+    border-block-start: 0;
   }
 
   .diagram__caption {
@@ -41,4 +165,15 @@ const { block } = Astro.props;
     color: var(--dust);
     line-height: 1.6;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    .diagram__canvas {
+      will-change: auto;
+    }
+  }
 </style>
+
+<script>
+  import { initDiagrams } from '~/scripts/diagram.ts';
+  initDiagrams();
+</script>

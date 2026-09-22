@@ -13,6 +13,8 @@ interface Props {
   sizes?: string;
   loading?: 'lazy' | 'eager';
   class?: string;
+  /** Fill a fixed frame. `contain` shows the whole image; `cover` crops to fill. */
+  fit?: 'cover' | 'contain';
 }
 
 const {
@@ -25,6 +27,7 @@ const {
   sizes = '(min-width: 60rem) 60rem, 100vw',
   loading = 'lazy',
   class: className,
+  fit,
 } = Astro.props;
 
 const resolved = resolveImage(kind, slug, src);
@@ -35,6 +38,7 @@ const resolved = resolveImage(kind, slug, src);
     <div
       class:list={['frame', className]}
       data-duotone={duotone ? '' : undefined}
+      data-fit={fit}
     >
       {resolved.optimisable ? (
         <Image
@@ -45,6 +49,9 @@ const resolved = resolveImage(kind, slug, src);
           loading={loading}
           decoding="async"
           format="avif"
+          {...(fit
+            ? { layout: 'full-width' as const, fit, position: 'center' }
+            : {})}
         />
       ) : (
         <img src={resolved.source as string} alt={alt} loading={loading} decoding="async" />
@@ -71,6 +78,26 @@ const resolved = resolveImage(kind, slug, src);
   .frame :global(img) {
     inline-size: 100%;
     display: block;
+  }
+
+  /* Cover/contain fills a parent-sized box. Astro's constrained layout sets
+     height: auto, which overflow-clips a tall source instead of scaling it. */
+  .frame[data-fit] :global(img) {
+    position: absolute;
+    inset: 0;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    object-position: center;
+  }
+
+  .frame[data-fit='cover'] :global(img) {
+    object-fit: cover;
+  }
+
+  .frame[data-fit='contain'] :global(img) {
+    object-fit: contain;
   }
 
   .frame[data-duotone]::after {

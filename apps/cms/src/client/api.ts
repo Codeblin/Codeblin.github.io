@@ -32,19 +32,20 @@ export const api = {
   meta: () => request<Meta>('/api/meta'),
   posts: () => request<{ posts: PostListItem[] }>('/api/posts'),
   post: (slug: string) => request<PostDetail>(`/api/posts/${slug}`),
-  createPost: (body: { title: string; category: string; slug?: string }) =>
+  createPost: (body: { title: string; category: string; slug?: string; tags?: string[] }) =>
     request<{ slug: string; record: number }>('/api/posts', { method: 'POST', body: JSON.stringify(body) }),
   savePost: (slug: string, body: unknown) =>
     request<PostDetail & { savedAt: string }>(`/api/posts/${slug}`, { method: 'PUT', body: JSON.stringify(body) }),
   deletePost: (slug: string) => request<{ ok: boolean }>(`/api/posts/${slug}`, { method: 'DELETE' }),
-  media: (slug: string) => request<{ files: string[] }>(`/api/posts/${slug}/media`),
-  upload: async (slug: string, file: File) => {
+  media: (slug: string, kind: 'posts' | 'projects' = 'posts') =>
+    request<{ files: string[] }>(`/api/${kind}/${slug}/media`),
+  upload: async (slug: string, file: File, kind: 'posts' | 'projects' = 'posts') => {
     const form = new FormData();
     form.append('file', file);
-    return request<{ src: string; files: string[] }>(`/api/posts/${slug}/media`, { method: 'POST', body: form });
+    return request<{ src: string; files: string[] }>(`/api/${kind}/${slug}/media`, { method: 'POST', body: form });
   },
-  deleteMedia: (slug: string, file: string) =>
-    request<{ ok: boolean; files: string[] }>(`/api/posts/${slug}/media/${encodeURIComponent(file)}`, {
+  deleteMedia: (slug: string, file: string, kind: 'posts' | 'projects' = 'posts') =>
+    request<{ ok: boolean; files: string[] }>(`/api/${kind}/${slug}/media/${encodeURIComponent(file)}`, {
       method: 'DELETE',
     }),
   projects: () => request<{ projects: ProjectListItem[] }>('/api/projects'),
@@ -56,18 +57,27 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(body),
     }),
+  deleteProject: (slug: string) => request<{ ok: boolean }>(`/api/projects/${slug}`, { method: 'DELETE' }),
   taxonomy: () => request<Taxonomy>('/api/taxonomy'),
   saveTaxonomy: (body: Taxonomy) => request<Taxonomy>('/api/taxonomy', { method: 'PUT', body: JSON.stringify(body) }),
   git: () => request<GitPayload>('/api/git'),
-  publish: (body: { slug: string; kind?: 'posts' | 'projects'; message?: string }) =>
+  publish: (body: { slug: string; kind?: 'posts' | 'projects'; as?: 'live' | 'draft'; message?: string }) =>
     request<PublishResult>('/api/git/publish', { method: 'POST', body: JSON.stringify(body) }),
-  unpublish: (slug: string) =>
-    request<{ ok: boolean; status: string }>('/api/git/unpublish', { method: 'POST', body: JSON.stringify({ slug }) }),
+  publishLocal: (slug: string, kind: 'posts' | 'projects' = 'posts', as: 'live' | 'draft' = 'live') =>
+    request<{ ok: boolean; status: string }>('/api/git/local', {
+      method: 'POST',
+      body: JSON.stringify({ slug, kind, as }),
+    }),
+  unpublish: (slug: string, kind: 'posts' | 'projects' = 'posts') =>
+    request<{ ok: boolean; status: string }>('/api/git/unpublish', {
+      method: 'POST',
+      body: JSON.stringify({ slug, kind }),
+    }),
   push: () => request<{ ok: boolean }>('/api/git/push', { method: 'POST', body: JSON.stringify({}) }),
 };
 
 export interface Issue {
-  level: 'error' | 'warning';
+  level: 'error' | 'warning' | 'info';
   record: string;
   message: string;
   line?: number;
@@ -148,7 +158,7 @@ export interface Meta {
   };
   recent: Array<{ slug: string; title: string; publishedAt: string | null; record: number }>;
   draftAges: Array<{ slug: string; title: string; updatedAt: string | null }>;
-  validation: { issues: Issue[]; errorCount: number; warningCount: number };
+  validation: { issues: Issue[]; errorCount: number; warningCount: number; infoCount: number };
   git: GitState;
   commits: Array<{ hash: string; subject: string; at: string }>;
   preview: string;
@@ -156,6 +166,8 @@ export interface Meta {
 
 export interface PublishResult {
   ok: boolean;
+  skipped?: boolean;
+  as?: 'live' | 'draft';
   steps: Array<{ id: string; ok: boolean; detail: string }>;
   error?: string;
 }

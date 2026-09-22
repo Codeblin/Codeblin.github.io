@@ -7,6 +7,16 @@ const execFile = promisify(execFileCallback);
 
 const GIT_TIMEOUT_MS = 30_000;
 
+export class GitError extends Error {
+  constructor(
+    message: string,
+    readonly code: number | null = null,
+  ) {
+    super(message);
+    this.name = 'GitError';
+  }
+}
+
 /**
  * Run a fixed git command. Arguments are an array — never interpolated into
  * a shell. The working directory is the repository root and nowhere else.
@@ -21,10 +31,24 @@ export async function git(args: readonly string[]): Promise<{ stdout: string; st
     });
     return { stdout: result.stdout, stderr: result.stderr };
   } catch (error) {
-    const err = error as { stdout?: string; stderr?: string; message: string };
-    const detail = (err.stderr || err.stdout || err.message).trim();
-    throw new Error(detail || 'git failed');
+    const err = error as { stdout?: string; stderr?: string; message: string; code?: number | string; status?: number };
+    const code = typeof err.code === 'number' ? err.code : typeof err.status === 'number' ? err.status : null;
+    throw new GitError(explainGitFailure((err.stderr || err.stdout || err.message).trim()), code);
   }
+}
+
+export function explainGitFailure(detail: string): string {
+  if (!detail) return 'git failed';
+  if (/index\.lock/i.test(detail)) return 'Git is busy. Wait a moment and try again.';
+  if (
+    /nothing to commit/i.test(detail) ||
+    /no changes added to commit/i.test(detail) ||
+    /changes not staged for commit/i.test(detail)
+  ) {
+    return 'Nothing in this record changed since the last commit.';
+  }
+  const first = detail.split(/\r?\n/).find((line) => line.trim().length > 0) ?? 'git failed';
+  return first.slice(0, 200);
 }
 
 export interface GitState {
@@ -70,24 +94,73 @@ export async function readRecentCommits(limit = 12): Promise<Array<{ hash: strin
     });
 }
 
-/** Stage only the given repository-relative paths. */
-export async function stage(paths: readonly string[]): Promise<void> {
-  if (paths.length === 0) return;
-  const relative = paths.map((entry) => toRepositoryPath(entry));
-  await git(['add', '--', ...relative]);
+function toGitPath(entry: string): string {
+  const posix = entry.split('\\').join('/');
+  if (posix.startsWith('content/')) return posix;
+  return toRepositoryPath(entry);
 }
 
-export async function commit(message: string): Promise<string> {
+/** Stage only the given repository-relative (or absolute) paths. */
+export async function stage(paths: readonly string[]): Promise<void> {
+  if (paths.length === 0) return;
+  await git(['add', '--', ...paths.map(toGitPath)]);
+}
+
+/** Stage one content record and nothing else — never apps/, packages/, or .cms/. */
+export async function stageRecord(kind: 'posts' | 'projects', slug: string): Promise<string> {
+  const relative = `content/${kind}/${slug}`;
+  await git(['add', '-A', '--', relative]);
+  return relative;
+}
+
+export async function hasStagedChanges(path?: string): Promise<boolean> {
+  const args = ['diff', '--cached', '--quiet'];
+  if (path) args.push('--', path);
+  try {
+    await git(args);
+    return false;
+  } catch (error) {
+    if (error instanceof GitError && error.code === 1) return true;
+    throw error;
+  }
+}
+
+export async function commit(message: string, paths?: readonly string[]): Promise<string> {
   const trimmed = message.trim();
   if (trimmed.length < 3 || trimmed.length > 72) {
     throw new Error('Commit message must be 3–72 characters.');
   }
   if (trimmed.startsWith('-')) throw new Error('Commit message cannot look like a flag.');
-  await git(['commit', '-m', trimmed]);
+  const args = ['commit', '-m', trimmed];
+  if (paths && paths.length > 0) args.push('--', ...paths);
+  await git(args);
   const { stdout } = await git(['rev-parse', '--short', 'HEAD']);
   return stdout.trim();
 }
 
 export async function push(): Promise<void> {
   await git(['push']);
+}
+
+let gitChain: Promise<void> = Promise.resolve();
+
+/** One git mutation at a time so publish/unpublish cannot race the index. */
+export function withGitLock<T>(fn: () => Promise<T>): Promise<T> {
+  const run = gitChain.then(fn, fn);
+  gitChain = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
+}
+
+export function publishCommitMessage(
+  kind: 'posts' | 'projects',
+  title: string,
+  as: 'live' | 'draft' = 'live',
+): string {
+  const prefix =
+    as === 'draft' ? (kind === 'posts' ? 'Draft' : 'Unpublish project') : kind === 'posts' ? 'Publish' : 'Publish project';
+  const raw = `${prefix} ${title}`.replace(/\s+/g, ' ').trim();
+  return raw.length <= 72 ? raw : `${raw.slice(0, 69)}...`;
 }

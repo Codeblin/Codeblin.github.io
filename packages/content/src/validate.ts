@@ -12,10 +12,10 @@ import { readTaxonomy } from './repository/taxonomy.ts';
  * One validator, used by the CMS before publish and by CI before deploy, so
  * nothing can be published locally that then fails in the pipeline.
  *
- * Errors block. Warnings are surfaced and ignored.
+ * Errors block. Warnings are surfaced and ignored. Info is advisory only.
  */
 
-export type IssueLevel = 'error' | 'warning';
+export type IssueLevel = 'error' | 'warning' | 'info';
 
 export interface Issue {
   level: IssueLevel;
@@ -29,6 +29,7 @@ export interface ValidationReport {
   issues: Issue[];
   errorCount: number;
   warningCount: number;
+  infoCount: number;
 }
 
 const EXCERPT_MIN = 40;
@@ -80,6 +81,7 @@ export function validateCorpus(
     issues,
     errorCount: issues.filter((issue) => issue.level === 'error').length,
     warningCount: issues.filter((issue) => issue.level === 'warning').length,
+    infoCount: issues.filter((issue) => issue.level === 'info').length,
   };
 }
 
@@ -113,7 +115,7 @@ export function validatePost(post: LoadedPost, knownCategories?: ReadonlySet<str
   }
   if (!frontmatter.subtitle) add('warning', 'No subtitle. It carries real weight in the layout.');
   if (frontmatter.tags.length > MAX_TAGS) add('warning', `More than ${MAX_TAGS} tags.`);
-  if (!frontmatter.cover) add('warning', 'No cover image.');
+  if (!frontmatter.cover) add('info', 'No cover image.');
 
   issues.push(...validateMedia(post, record));
   issues.push(...validateOutline(post, record));
@@ -142,8 +144,11 @@ function validateMedia(document: Post | Project, record: string): Issue[] {
   if (cover) references.add(cover.src);
 
   for (const block of walkBlocks(document.blocks)) {
-    if (block.type === 'image' || block.type === 'video') references.add(block.src);
-    if (block.type === 'video' && block.poster) references.add(block.poster);
+    if (block.type === 'image') references.add(block.src);
+    if (block.type === 'video') {
+      if (!block.src.startsWith('youtube:')) references.add(block.src);
+      if (block.poster) references.add(block.poster);
+    }
     if (block.type === 'gallery') for (const item of block.items) references.add(item.src);
   }
 
@@ -188,12 +193,18 @@ export function pad(record: number): string {
   return record.toString().padStart(4, '0');
 }
 
+function formatLevel(level: IssueLevel): string {
+  if (level === 'error') return 'ERROR  ';
+  if (level === 'warning') return 'WARNING';
+  return 'INFO   ';
+}
+
 export function formatReport(report: ValidationReport): string {
   if (report.issues.length === 0) return 'Content valid — no issues.';
   return report.issues
     .map((issue) => {
       const location = issue.line ? `${issue.record}:${issue.line}` : issue.record;
-      return `${issue.level === 'error' ? 'ERROR  ' : 'WARNING'} ${location}  ${issue.message}`;
+      return `${formatLevel(issue.level)} ${location}  ${issue.message}`;
     })
     .join('\n');
 }

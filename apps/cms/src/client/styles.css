@@ -75,6 +75,7 @@ textarea {
 label {
   display: grid;
   gap: 0.25rem;
+  min-inline-size: 0;
   font-size: var(--fs-micro);
   letter-spacing: var(--tr-micro);
   text-transform: uppercase;
@@ -273,6 +274,11 @@ a:focus-visible {
   border-color: var(--sulfur-edge);
 }
 
+.block[data-drop] {
+  border-color: var(--sulfur);
+  outline: 1px dashed var(--sulfur);
+}
+
 .block__bar {
   display: flex;
   gap: 0.35rem;
@@ -285,12 +291,38 @@ a:focus-visible {
   text-transform: uppercase;
 }
 
+.block__grip {
+  cursor: grab;
+  padding: 0.2rem 0.35rem;
+  letter-spacing: 0;
+  color: var(--ghost);
+}
+
+.block__grip:active {
+  cursor: grabbing;
+}
+
 .block__bar button {
   padding: 0.2rem 0.4rem;
 }
 
 .block__body {
   padding: 0.6rem;
+  min-inline-size: 0;
+}
+
+.block__body :is(textarea, input, select) {
+  inline-size: 100%;
+  max-inline-size: none;
+  box-sizing: border-box;
+}
+
+.blocks {
+  min-inline-size: 0;
+}
+
+.editor > div {
+  min-inline-size: 0;
 }
 
 .meta-grid {
@@ -313,12 +345,139 @@ a:focus-visible {
   color: var(--sev-medium);
 }
 
+.issues .info {
+  color: var(--sev-info);
+}
+
+.publish-bar {
+  display: grid;
+  gap: 0.45rem;
+  margin-block-end: 1rem;
+}
+
+.publish-bar__groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  align-items: end;
+}
+
+.publish-bar__group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: end;
+  padding: 0.45rem 0.55rem;
+  border: var(--bw) solid var(--hair);
+  background: var(--carbon);
+}
+
+.publish-bar__k {
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tr-micro);
+  text-transform: uppercase;
+  color: var(--dust);
+  align-self: center;
+  padding-inline-end: 0.25rem;
+}
+
+.publish-bar__hint {
+  margin: 0;
+  color: var(--ash);
+  font-family: var(--font-body);
+  font-size: var(--fs-code);
+  line-height: 1.45;
+  max-inline-size: 62rem;
+}
+
 .preview-frame {
   inline-size: 100%;
   block-size: 100%;
   min-block-size: 32rem;
   border: var(--bw) solid var(--hair);
   background: var(--void);
+}
+
+.diagram-preview {
+  position: relative;
+  border: var(--bw) solid var(--hair);
+  background: var(--void);
+}
+
+.diagram-preview__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  padding: 0.4rem 0.55rem;
+  border-block-end: var(--bw) solid var(--hair);
+}
+
+.diagram-preview__hint {
+  margin: 0 auto 0 0;
+  color: var(--dust);
+  font-size: var(--fs-code);
+}
+
+.diagram-preview__stage {
+  position: relative;
+  overflow: auto;
+  block-size: 18rem;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+}
+
+.diagram-preview__stage[data-dragging] {
+  cursor: grabbing;
+}
+
+.diagram-preview__canvas {
+  width: max-content;
+  min-inline-size: 100%;
+  transform-origin: 0 0;
+}
+
+.diagram-preview__canvas svg {
+  display: block;
+  max-inline-size: none;
+  width: auto;
+  height: auto;
+}
+
+.diagram-preview[data-ready] .diagram-preview__stage {
+  overflow: hidden;
+}
+
+.diagram-preview[data-ready] .diagram-preview__canvas {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  min-inline-size: 0;
+}
+
+.diagram-preview[data-expanded] {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-sheet);
+  display: flex;
+  flex-direction: column;
+  padding: 4vh 5vw;
+  background: rgb(8 8 10 / 0.72);
+  border: 0;
+}
+
+.diagram-preview[data-expanded] .diagram-preview__toolbar,
+.diagram-preview[data-expanded] .diagram-preview__stage {
+  border: var(--bw) solid var(--hair-lit);
+  background: var(--void);
+}
+
+.diagram-preview[data-expanded] .diagram-preview__stage {
+  flex: 1;
+  block-size: auto;
+  min-block-size: 0;
+  border-block-start: 0;
 }
 
 .palette {

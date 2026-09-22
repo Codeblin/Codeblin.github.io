@@ -1,9 +1,10 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
+import { ZodError } from 'zod';
 
 import { git } from './routes/git.ts';
-import { media } from './routes/media.ts';
+import { mediaRoutes } from './routes/media.ts';
 import { meta } from './routes/meta.ts';
 import { posts } from './routes/posts.ts';
 import { projects } from './routes/projects.ts';
@@ -23,7 +24,7 @@ export const app = new Hono();
 app.use(
   '*',
   cors({
-    origin: ['http://127.0.0.1:4322', 'http://localhost:4322'],
+    origin: ['http://127.0.0.1:4322', 'http://localhost:4322', 'http://[::1]:4322'],
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowHeaders: ['content-type'],
     maxAge: 600,
@@ -37,6 +38,11 @@ app.use('*', async (context, next) => {
 
 app.onError((error, context) => {
   if (error instanceof HTTPException) return error.getResponse();
+  if (error instanceof ZodError || (error instanceof Error && 'issues' in error && Array.isArray((error as ZodError).issues))) {
+    const issues = (error as ZodError).issues;
+    const message = issues.map((issue) => issue.message).join('; ') || 'Invalid request';
+    return context.json({ error: message }, 400);
+  }
   const message = error instanceof Error ? error.message : 'Internal error';
   console.error('[cms]', error);
   return context.json({ error: message }, 500);
@@ -44,8 +50,9 @@ app.onError((error, context) => {
 
 app.route('/api', meta);
 app.route('/api/posts', posts);
-app.route('/api/posts', media);
+app.route('/api/posts', mediaRoutes('posts'));
 app.route('/api/projects', projects);
+app.route('/api/projects', mediaRoutes('projects'));
 app.route('/api/taxonomy', taxonomy);
 app.route('/api/git', git);
 

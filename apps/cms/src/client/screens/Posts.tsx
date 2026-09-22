@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { api, type PostListItem } from '../api.ts';
+import { api, type PostListItem, type Taxonomy } from '../api.ts';
+import { CommaListInput } from '../editor/CommaListInput.tsx';
 
 interface Props {
   go: (to: string) => void;
@@ -10,9 +11,12 @@ interface Props {
 
 export function Posts({ go, filter, onToast }: Props): React.ReactElement {
   const [posts, setPosts] = useState<PostListItem[]>([]);
+  const [taxonomy, setTaxonomy] = useState<Taxonomy | null>(null);
   const [query, setQuery] = useState('');
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('appsec');
+  const [category, setCategory] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
+  const [creating, setCreating] = useState(false);
 
   const load = (): void => {
     void api
@@ -22,6 +26,16 @@ export function Posts({ go, filter, onToast }: Props): React.ReactElement {
   };
 
   useEffect(load, [onToast]);
+
+  useEffect(() => {
+    void api
+      .taxonomy()
+      .then((payload) => {
+        setTaxonomy(payload);
+        setCategory((current) => current || payload.categories[0]?.slug || '');
+      })
+      .catch((error: unknown) => onToast({ text: error instanceof Error ? error.message : 'Taxonomy failed', fail: true }));
+  }, [onToast]);
 
   const visible = useMemo(() => {
     const needle = query.toLowerCase();
@@ -37,13 +51,28 @@ export function Posts({ go, filter, onToast }: Props): React.ReactElement {
   }, [posts, query, filter]);
 
   const create = async (): Promise<void> => {
-    if (!title.trim()) return;
+    const nextTitle = title.trim();
+    const nextCategory = category.trim();
+    if (!nextTitle) {
+      onToast({ text: 'Give the article a title first', fail: true });
+      return;
+    }
+    if (!nextCategory) {
+      onToast({ text: 'Pick a category', fail: true });
+      return;
+    }
+    if (creating) return;
+    setCreating(true);
     try {
-      const created = await api.createPost({ title: title.trim(), category });
+      const created = await api.createPost({ title: nextTitle, category: nextCategory, tags });
       onToast({ text: `Created //${created.record.toString().padStart(4, '0')}` });
+      setTitle('');
+      setTags([]);
       go(`/posts/${created.slug}`);
     } catch (error) {
       onToast({ text: error instanceof Error ? error.message : 'Create failed', fail: true });
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -58,14 +87,32 @@ export function Posts({ go, filter, onToast }: Props): React.ReactElement {
       >
         <label>
           New title
-          <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Article title" />
+          <input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder="Article title"
+            required
+            autoComplete="off"
+          />
         </label>
         <label>
           Category
-          <input value={category} onChange={(event) => setCategory(event.target.value)} />
+          <select value={category} onChange={(event) => setCategory(event.target.value)} required>
+            {taxonomy?.categories.map((item) => (
+              <option key={item.slug} value={item.slug}>
+                {item.name}
+              </option>
+            ))}
+          </select>
         </label>
-        <button className="primary" type="submit">
-          Create
+        <CommaListInput
+          label="Tags"
+          values={tags}
+          onChange={setTags}
+          placeholder="android, frida"
+        />
+        <button className="primary" type="submit" disabled={creating}>
+          {creating ? 'Creating…' : 'Create'}
         </button>
         <label style={{ marginInlineStart: 'auto' }}>
           Filter

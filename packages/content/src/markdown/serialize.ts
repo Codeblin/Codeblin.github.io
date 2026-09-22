@@ -1,4 +1,5 @@
 import { formatLineRanges, writeAttributes } from './attributes.ts';
+import { looksLikeMermaid } from '../mermaid.ts';
 import type { Block, TableAlignment } from '../schema/blocks.ts';
 
 /**
@@ -17,7 +18,7 @@ export function serializeBlocks(blocks: readonly Block[]): string {
 function serializeBlock(block: Block): string {
   switch (block.type) {
     case 'prose':
-      return block.markdown.trim();
+      return block.markdown.trim().length > 0 ? block.markdown.trim() : '<!-- empty -->';
 
     case 'heading':
       return `${'#'.repeat(block.level)} ${block.text.trim()}`;
@@ -71,7 +72,11 @@ function serializeBlock(block: Block): string {
       return fence('command', writeAttributes([['note', block.note]]), block.value);
 
     case 'diagram':
-      return fence('diagram', writeAttributes([['caption', block.caption]]), block.source);
+      return fence(
+        looksLikeMermaid(block.source) ? 'mermaid' : 'diagram',
+        writeAttributes([['caption', block.caption]]),
+        block.source,
+      );
 
     case 'finding':
       return container(

@@ -45,6 +45,7 @@ export {
   saveMedia,
   savePost,
   sniffMedia,
+  type MediaKind,
 } from './repository/mutate.ts';
 export {
   createProject,
@@ -53,8 +54,11 @@ export {
   saveProject,
 } from './repository/mutate-project.ts';
 export { writeTaxonomy } from './repository/mutate-taxonomy.ts';
-export { atomicWrite, newBlockId, slugify, today } from './repository/write.ts';
+export { atomicWrite } from './repository/write.ts';
+export { newBlockId, slugify, today } from './ids.ts';
 export { emptyBlock } from './factory.ts';
+export { looksLikeMermaid, sanitizeMermaidSvg } from './mermaid.ts';
+export { isYoutubeSrc, parseYoutubeRef, youtubeSrc, youtubeWatchUrl } from './youtube.ts';
 export {
   invalidatePageCache,
   pageFrontmatterSchema,

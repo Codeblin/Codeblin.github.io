@@ -1,47 +1,39 @@
 ---
 import type { Block } from '@codeblin/content';
 
+import YoutubeEmbed from './YoutubeEmbed.astro';
+
 interface Props {
   block: Extract<Block, { type: 'embed' }>;
 }
 
 const { block } = Astro.props;
 
-/**
- * Embeds render as a link card, never an iframe.
- *
- * A third-party frame would load their scripts, set their cookies, and force
- * `frame-src` open in the Content Security Policy — on a site that promises no
- * trackers. The reader gets a labelled card and one click; see SECURITY.md.
- */
-const providers = {
-  youtube: {
-    label: 'YOUTUBE',
-    href: (ref: string) => `https://www.youtube.com/watch?v=${ref}`,
-    note: 'Opens on youtube.com',
-  },
-  gist: {
-    label: 'GIST',
-    href: (ref: string) => `https://gist.github.com/${ref}`,
-    note: 'Opens on gist.github.com',
-  },
-} as const;
-
-const provider = providers[block.provider];
+const gistHref = `https://gist.github.com/${block.ref}`;
 ---
 
-<a
-  class="embed bracketed"
-  href={provider.href(block.ref)}
-  rel="noopener noreferrer"
-  target="_blank"
->
-  <span class="embed__provider micro">{provider.label}</span>
-  <span class="embed__title">{block.title ?? provider.href(block.ref)}</span>
-  <span class="embed__note micro">{provider.note} ↗</span>
-</a>
+{
+  block.provider === 'youtube' ? (
+    <figure class="embed-video">
+      <YoutubeEmbed id={block.ref} caption={block.title} />
+      {block.title && <figcaption class="embed-video__caption label">{block.title}</figcaption>}
+    </figure>
+  ) : (
+    <a class="embed bracketed" href={gistHref} rel="noopener noreferrer" target="_blank">
+      <span class="embed__provider micro">GIST</span>
+      <span class="embed__title">{block.title ?? gistHref}</span>
+      <span class="embed__note micro">Opens on gist.github.com ↗</span>
+    </a>
+  )
+}
 
 <style>
+  .embed-video__caption {
+    margin-block-start: var(--s-3);
+    color: var(--dust);
+    line-height: 1.6;
+  }
+
   .embed {
     display: grid;
     gap: var(--s-2);

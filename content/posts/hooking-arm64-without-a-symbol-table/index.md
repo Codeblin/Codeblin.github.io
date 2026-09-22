@@ -23,6 +23,30 @@ Every dynamic instrumentation guide starts the same way: attach to the process,
 name the function, replace it. That works because the examples use libraries
 with symbol tables. The libraries worth instrumenting usually do not have one.
 
+:::gallery
+::item{src="./media/screenshot-2026-09-09-130232.png" alt="Replace this image"}
+
+::item{src="./media/screenshot-2026-09-09-130232.png" alt="Replace this image"}
+
+::item{src="./media/screenshot-2026-09-09-130232.png" alt="Replace this image"}
+
+::item{src="./media/screenshot-2026-09-09-130232.png" alt="Replace this image"}
+
+::item{src="./media/screenshot-2026-09-09-130232.png" alt="Replace this image"}
+:::
+
+```mermaid caption="Diagram"
+sequenceDiagram
+    Alice ->> Bob: Hello Bob, how are you?
+    Bob-->>John: How about you John?
+    Bob--x Alice: I am good thanks!
+    Bob-x John: I am good thanks!
+    Note right of John: Bob thinks a long<br/>long time, so long<br/>that the text does<br/>not fit on a row.
+
+    Bob-->Alice: Checking with John...
+    Alice->John: Yes... John, how are you?
+```
+
 This is about the gap between those two situations — what handles remain when
 the names are gone, and which of them are worth using before anyone reaches for
 a byte pattern.

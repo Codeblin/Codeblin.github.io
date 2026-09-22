@@ -11,7 +11,7 @@ import path from 'node:path';
 
 import type { Block } from '../schema/blocks.ts';
 import { postFrontmatterSchema, SLUG_PATTERN, type PostFrontmatter } from '../schema/post.ts';
-import { documentFile, mediaDirectory, postDirectory } from './paths.ts';
+import { postDirectory, projectDirectory, documentFile, mediaDirectory } from './paths.ts';
 import { invalidatePostCache, listPosts, serializePost } from './posts.ts';
 import { atomicWrite, newBlockId, slugify } from './write.ts';
 
@@ -19,6 +19,7 @@ export interface CreatePostInput {
   title: string;
   slug?: string;
   category: string;
+  tags?: string[];
 }
 
 export function nextPostRecord(): number {
@@ -42,14 +43,15 @@ export function allocateSlug(title: string, requested?: string): string {
 export function createPost(input: CreatePostInput): { slug: string; record: number } {
   const slug = allocateSlug(input.title, input.slug);
   const directory = postDirectory(slug);
+  const record = nextPostRecord();
   mkdirSync(mediaDirectory(directory), { recursive: true });
 
   const frontmatter: PostFrontmatter = {
-    record: nextPostRecord(),
+    record,
     title: input.title,
     status: 'draft',
     category: input.category,
-    tags: [],
+    tags: (input.tags ?? []).filter((tag) => SLUG_PATTERN.test(tag)).slice(0, 8),
     featured: false,
   };
 
@@ -76,8 +78,14 @@ export function deletePost(slug: string): void {
 
 const MEDIA_NAME = /^[\w.-]+\.(png|jpe?g|webp|gif|avif|mp4)$/i;
 
-export function listMedia(slug: string): string[] {
-  const directory = mediaDirectory(postDirectory(slug));
+export type MediaKind = 'posts' | 'projects';
+
+function recordDirectory(slug: string, kind: MediaKind): string {
+  return kind === 'projects' ? projectDirectory(slug) : postDirectory(slug);
+}
+
+export function listMedia(slug: string, kind: MediaKind = 'posts'): string[] {
+  const directory = mediaDirectory(recordDirectory(slug, kind));
   if (!existsSync(directory)) return [];
   return readdirSync(directory)
     .filter((name) => MEDIA_NAME.test(name) && !name.startsWith('.'))
@@ -103,19 +111,24 @@ export function sniffMedia(bytes: Buffer): string | null {
   return null;
 }
 
-export function saveMedia(slug: string, originalName: string, bytes: Buffer): string {
+export function saveMedia(
+  slug: string,
+  originalName: string,
+  bytes: Buffer,
+  kind: MediaKind = 'posts',
+): string {
   if (!SLUG_PATTERN.test(slug)) throw new Error(`Invalid slug: ${slug}`);
-  const kind = sniffMedia(bytes);
-  if (!kind) throw new Error('Unrecognised or disallowed media type.');
+  const sniffed = sniffMedia(bytes);
+  if (!sniffed) throw new Error('Unrecognised or disallowed media type.');
 
   const stem = slugify(originalName.replace(/\.[^.]+$/, '')) || 'image';
-  const directory = mediaDirectory(postDirectory(slug));
+  const directory = mediaDirectory(recordDirectory(slug, kind));
   mkdirSync(directory, { recursive: true });
 
-  let filename = `${stem}.${kind}`;
+  let filename = `${stem}.${sniffed}`;
   let index = 2;
   while (existsSync(path.join(directory, filename))) {
-    filename = `${stem}-${index}.${kind}`;
+    filename = `${stem}-${index}.${sniffed}`;
     index += 1;
   }
 
@@ -123,20 +136,20 @@ export function saveMedia(slug: string, originalName: string, bytes: Buffer): st
   return `./media/${filename}`;
 }
 
-export function deleteMedia(slug: string, filename: string): void {
+export function deleteMedia(slug: string, filename: string, kind: MediaKind = 'posts'): void {
   if (!SLUG_PATTERN.test(slug)) throw new Error(`Invalid slug: ${slug}`);
   if (!MEDIA_NAME.test(filename) || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
     throw new Error('Invalid media filename.');
   }
-  const file = path.join(mediaDirectory(postDirectory(slug)), filename);
+  const file = path.join(mediaDirectory(recordDirectory(slug, kind)), filename);
   if (!existsSync(file)) throw new Error(`No media file ${filename}.`);
   unlinkSync(file);
 }
 
-export function readMedia(slug: string, filename: string): Buffer {
+export function readMedia(slug: string, filename: string, kind: MediaKind = 'posts'): Buffer {
   if (!SLUG_PATTERN.test(slug)) throw new Error(`Invalid slug: ${slug}`);
   if (!MEDIA_NAME.test(filename) || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
     throw new Error('Invalid media filename.');
   }
-  return readFileSync(path.join(mediaDirectory(postDirectory(slug)), filename));
+  return readFileSync(path.join(mediaDirectory(recordDirectory(slug, kind)), filename));
 }

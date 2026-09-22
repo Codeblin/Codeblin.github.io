@@ -39,11 +39,11 @@ export function Settings({ meta, onToast }: Props): React.ReactElement {
           <tbody>
             <tr>
               <td>Ctrl/⌘ S</td>
-              <td>Save</td>
+              <td>Save locally (disk only)</td>
             </tr>
             <tr>
               <td>Ctrl/⌘ Shift P</td>
-              <td>Publish</td>
+              <td>Publish to GitHub</td>
             </tr>
             <tr>
               <td>/</td>

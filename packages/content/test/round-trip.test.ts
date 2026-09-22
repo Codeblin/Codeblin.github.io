@@ -57,6 +57,17 @@ test('non-canonical input converges after one pass', () => {
   assert.equal(twice, once);
 });
 
+test('an empty prose block round-trips instead of vanishing', () => {
+  const blocks: Block[] = [{ id: 'p1', type: 'prose', markdown: '' }];
+  const markdown = serializeBlocks(blocks);
+  const parsed = parseBlocks(markdown);
+  assert.equal(parsed.diagnostics.length, 0);
+  assert.equal(parsed.blocks.length, 1);
+  assert.equal(parsed.blocks[0]?.type, 'prose');
+  assert.equal(parsed.blocks[0]?.type === 'prose' ? parsed.blocks[0].markdown : 'x', '');
+  assert.equal(serializeBlocks(parsed.blocks), markdown);
+});
+
 test('prose survives verbatim, including its exact inline syntax', () => {
   const source = 'A line with **bold**, _italics_, `code`, and a [link](https://example.com/a).\n';
   const { blocks } = parseBlocks(source);

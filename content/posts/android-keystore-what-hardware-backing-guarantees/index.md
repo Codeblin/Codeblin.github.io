@@ -1,11 +1,11 @@
 ---
 record: 5
 title: What Hardware Backing Actually Guarantees
-subtitle: Part two — the Android Keystore, the difference between StrongBox and TEE, and the guarantee people think they are buying
-excerpt: >-
-  The Keystore does not make your data safe. It makes a key unextractable,
-  which is a narrower and more useful property than most threat models assume.
-  This is where the line actually falls.
+subtitle: Part two — the Android Keystore, the difference between StrongBox and TEE, and
+  the guarantee people think they are buying
+excerpt: The Keystore does not make your data safe. It makes a key unextractable, which
+  is a narrower and more useful property than most threat models assume. This is where
+  the line actually falls.
 status: published
 publishedAt: 2025-11-24
 updatedAt: 2026-01-15
@@ -14,6 +14,9 @@ tags:
   - android
   - keystore
   - masvs
+cover:
+  src: ./media/d1ec812b3344eadd4b5f28136860fe35.jpg
+  alt: What Hardware Backing Actually Guarantees
 series:
   id: android-storage
   order: 2

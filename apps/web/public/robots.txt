@@ -1,6 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /search/
-Disallow: /_draft/
+Disallow: /preview/
 
 Sitemap: https://codeblin.dev/sitemap-index.xml

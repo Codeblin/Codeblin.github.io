@@ -151,6 +151,7 @@ export async function highlightCode(
 export function languageLabel(lang: string): string {
   if (!lang) return 'TEXT';
   const pretty: Record<string, string> = {
+    mermaid: 'MERMAID',
     js: 'JAVASCRIPT',
     ts: 'TYPESCRIPT',
     tsx: 'TSX',

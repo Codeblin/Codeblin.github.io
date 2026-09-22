@@ -45,6 +45,13 @@ export const mediaPathSchema = z
     { message: 'Media must be ./media/<file> within the record, or /images/<file>.' },
   );
 
+/** Local file, or a `youtube:<id>` reference rendered as a link card. */
+export const youtubeSrcSchema = z.string().regex(/^youtube:[\w-]{11}$/, {
+  message: 'YouTube sources are youtube:<11-character id>.',
+});
+
+export const videoSrcSchema = z.union([mediaPathSchema, youtubeSrcSchema]);
+
 /**
  * Links may leave the site, but only over schemes that cannot execute
  * anything. `javascript:` and `data:` are rejected by construction rather than
@@ -198,7 +205,7 @@ export const embedBlockSchema = z.object({
 export const videoBlockSchema = z.object({
   id: idField,
   type: z.literal('video'),
-  src: mediaPathSchema,
+  src: videoSrcSchema,
   poster: mediaPathSchema.optional(),
   caption: z.string().optional(),
 });
@@ -206,7 +213,7 @@ export const videoBlockSchema = z.object({
 export const diagramBlockSchema = z.object({
   id: idField,
   type: z.literal('diagram'),
-  /** Monospaced ASCII art, rendered as text. No diagram-renderer dependency. */
+  /** Mermaid source, or monospaced ASCII. No client-side renderer. */
   source: z.string().min(1),
   caption: z.string().optional(),
 });

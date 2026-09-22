@@ -13,6 +13,10 @@ tags:
   - android
   - masvs
   - keystore
+cover:
+  src: ./media/097e1454aa5cf6f643e2079d01c37af9.jpg
+  alt: What Survives a Backup, a Root and an Uninstall
+  duotone: true
 series:
   id: android-storage
   order: 3

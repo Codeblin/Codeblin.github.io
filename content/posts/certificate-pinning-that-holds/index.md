@@ -15,6 +15,9 @@ tags:
   - tls
   - frida
   - masvs
+cover:
+  src: ./media/50f088c1efa1434e7088b69c6f35d1f6.jpg
+  alt: Certificate Pinning That Actually Holds
 featured: true
 ---
 

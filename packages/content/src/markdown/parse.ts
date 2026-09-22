@@ -23,6 +23,7 @@ import {
   type TableAlignment,
   type TerminalLine,
 } from '../schema/blocks.ts';
+import { parseYoutubeRef, youtubeSrc } from '../youtube.ts';
 
 export interface Diagnostic {
   level: 'error' | 'warning';
@@ -50,6 +51,7 @@ const SPECIAL_FENCES = new Set([
   'filetree',
   'command',
   'diagram',
+  'mermaid',
 ]);
 
 /**
@@ -111,6 +113,11 @@ function nodeToBlock(node: RootContent, context: ParseContext): Block | null {
       report(context, 'error', `Inline directive ":${node.name}" is not supported.`, node);
       return null;
     case 'html':
+      // CMS serialises an empty prose block as this comment so it is not
+      // dropped on the next parse. Any other raw HTML is still rejected.
+      if (node.value.trim() === '<!-- empty -->') {
+        return { id: nextId(context), type: 'prose', markdown: '' };
+      }
       report(context, 'error', 'Raw HTML is not rendered. Use a block directive.', node);
       return null;
     default:
@@ -182,8 +189,16 @@ function codeLikeBlock(
       };
     case 'command':
       return { id, type: 'command', value: value.trim(), note: attributes['note'] };
-    default:
+    case 'diagram':
+    case 'mermaid':
       return { id, type: 'diagram', source: value, caption: attributes['caption'] };
+    default:
+      return {
+        id,
+        type: 'code',
+        lang: language,
+        source: value,
+      };
   }
 }
 
@@ -347,14 +362,17 @@ function leafBlock(node: LeafDirective, context: ParseContext): Block | null {
         title: readAttribute(attributes, 'title'),
       };
     }
-    case 'video':
+    case 'video': {
+      const raw = readAttribute(attributes, 'src') ?? '';
+      const youtube = parseYoutubeRef(raw);
       return {
         id,
         type: 'video',
-        src: readAttribute(attributes, 'src') ?? '',
+        src: youtube ? youtubeSrc(youtube) : raw,
         poster: readAttribute(attributes, 'poster'),
         caption: readAttribute(attributes, 'caption'),
       };
+    }
     case 'item':
       // Only meaningful inside a gallery, where the parent consumes it.
       return null;

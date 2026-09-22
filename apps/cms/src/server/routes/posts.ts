@@ -21,6 +21,7 @@ const createSchema = z.object({
   title: z.string().min(1).max(120),
   slug: z.string().optional(),
   category: z.string().min(1),
+  tags: z.array(z.string()).max(8).optional(),
 });
 
 const saveSchema = z.object({

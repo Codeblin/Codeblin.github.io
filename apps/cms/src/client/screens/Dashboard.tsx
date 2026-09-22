@@ -1,4 +1,5 @@
 import type { Meta } from '../api.ts';
+import { issueClass } from '../issues.ts';
 
 interface Props {
   meta: Meta | null;
@@ -72,13 +73,14 @@ export function Dashboard({ meta, go }: Props): React.ReactElement {
       <section className="panel">
         <p className="stat__k">
           Validation — {validation.errorCount} errors, {validation.warningCount} warnings
+          {validation.infoCount ? `, ${validation.infoCount} notes` : ''}
         </p>
         {validation.issues.length === 0 ? (
           <p className="empty">Corpus is clean.</p>
         ) : (
           <div className="issues">
             {validation.issues.slice(0, 20).map((issue, index) => (
-              <p key={`${issue.record}-${index}`} className={issue.level === 'error' ? 'err' : 'warn'}>
+              <p key={`${issue.record}-${index}`} className={issueClass(issue.level)}>
                 {issue.level.toUpperCase()} {issue.record} — {issue.message}
               </p>
             ))}

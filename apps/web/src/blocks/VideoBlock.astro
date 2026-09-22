@@ -1,6 +1,9 @@
 ---
 import type { Block } from '@codeblin/content';
+import { parseYoutubeRef } from '@codeblin/content';
 import { resolveImage, type RecordKind } from '~/lib/media.ts';
+
+import YoutubeEmbed from './YoutubeEmbed.astro';
 
 interface Props {
   block: Extract<Block, { type: 'video' }>;
@@ -9,26 +12,29 @@ interface Props {
 }
 
 const { block, kind, slug } = Astro.props;
-
-/**
- * Video is served from the repository, never from a third party. The source
- * path is a repository-relative content path, so it resolves to the same
- * public URL the media directory is copied to at build time.
- */
-const src = `/media/${kind}/${slug}/${block.src.replace('./media/', '')}`;
+const youtubeId = parseYoutubeRef(block.src);
+const fileSrc = youtubeId ? null : `/media/${kind}/${slug}/${block.src.replace('./media/', '')}`;
 const poster = block.poster ? resolveImage(kind, slug, block.poster) : null;
 const posterUrl =
   poster && typeof poster.source !== 'string' ? poster.source.src : (poster?.source ?? undefined);
 ---
 
 <figure class="video">
-  <div class="video__frame">
-    <video controls preload="none" poster={posterUrl} playsinline>
-      <source src={src} />
-      Your browser cannot play this file.
-      <a href={src} download>Download it instead.</a>
-    </video>
-  </div>
+  {
+    youtubeId ? (
+      <YoutubeEmbed id={youtubeId} caption={block.caption} />
+    ) : (
+      <div class="video__frame">
+        <video controls preload="none" poster={posterUrl} playsinline>
+          <source src={fileSrc ?? undefined} />
+          Your browser cannot play this file.
+          <a href={fileSrc ?? '#'} download>
+            Download it instead.
+          </a>
+        </video>
+      </div>
+    )
+  }
   {block.caption && <figcaption class="video__caption label">{block.caption}</figcaption>}
 </figure>
 

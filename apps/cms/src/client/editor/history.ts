@@ -1,4 +1,4 @@
-import type { Block } from '@codeblin/content';
+import type { Block } from '@codeblin/content/client';
 
 export interface Snapshot<T> {
   frontmatter: T;

@@ -145,6 +145,7 @@ const structuredData = {
             widths={[800, 1200, 1800, 2400]}
             sizes="(min-width: 90rem) 86rem, 100vw"
             loading="eager"
+            fit="cover"
           />
         </div>
       )
@@ -344,6 +345,27 @@ const structuredData = {
 
   .article__cover {
     margin-block-end: var(--s-12);
+  }
+
+  .article__cover :global(.frame) {
+    inline-size: 100%;
+    block-size: min(28rem, 48vh);
+  }
+
+  /* Scale down when the source is wider than the banner; never stretch a
+     smaller image to fill the width (that crops a portrait to a sliver).
+     Overflow is cropped by the frame. Selector must beat Frame's fill rules. */
+  .article__cover :global(.frame[data-fit] img) {
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    translate: -50% -50%;
+    width: auto !important;
+    height: auto !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    object-fit: none;
+    object-position: center;
   }
 
   /* ── Grid ─────────────────────────────────────────────────────────────── */

@@ -1,40 +1,40 @@
 ---
 /**
- * Dev-only preview of drafts. Production builds emit zero paths here, so the
- * route cannot leak unpublished work. The CMS iframe points at this.
+ * Dev-only live preview. Injected by `cmsPreview()` — it is not a `pages/`
+ * route, so production builds emit nothing here.
+ *
+ * Rendered on demand (prerender: false) and always read from disk. A
+ * getStaticPaths snapshot is what made the CMS iframe ignore saves.
  */
-import { listPosts, listProjects, type LoadedPost, type LoadedProject } from '@codeblin/content';
-import type { GetStaticPaths } from 'astro';
+import { readPost, readProject, type LoadedPost, type LoadedProject } from '@codeblin/content';
 
 import BlockRenderer from '~/blocks/BlockRenderer.astro';
 import Base from '~/layouts/Base.astro';
 
-export const getStaticPaths = (() => {
-  if (!import.meta.env.DEV) return [];
+const kind = Astro.params.kind;
+const slug = Astro.params.slug;
 
-  const posts = listPosts({ includeDrafts: true }).map((post) => ({
-    params: { kind: 'posts', slug: post.slug },
-    props: { kind: 'posts' as const, post, project: undefined },
-  }));
-
-  const projects = listProjects({ includeUnpublished: true }).map((project) => ({
-    params: { kind: 'projects', slug: project.slug },
-    props: { kind: 'projects' as const, post: undefined, project },
-  }));
-
-  return [...posts, ...projects];
-}) satisfies GetStaticPaths;
-
-interface Props {
-  kind: 'posts' | 'projects';
-  post?: LoadedPost;
-  project?: LoadedProject;
+if (kind !== 'posts' && kind !== 'projects') {
+  return new Response(null, { status: 404, statusText: 'Not Found' });
+}
+if (!slug) {
+  return new Response(null, { status: 404, statusText: 'Not Found' });
 }
 
-const { kind, post, project } = Astro.props;
+let post: LoadedPost | undefined;
+let project: LoadedProject | undefined;
+
+try {
+  if (kind === 'posts') post = readPost(slug, { fresh: true });
+  else project = readProject(slug, { fresh: true });
+} catch {
+  return new Response(null, { status: 404, statusText: 'Not Found' });
+}
+
+Astro.response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+
 const title = kind === 'posts' ? (post?.frontmatter.title ?? 'Draft') : (project?.frontmatter.name ?? 'Draft');
 const blocks = kind === 'posts' ? (post?.blocks ?? []) : (project?.blocks ?? []);
-const slug = kind === 'posts' ? (post?.slug ?? '') : (project?.slug ?? '');
 ---
 
 <Base title={`Preview · ${title}`} description="Local draft preview. Not indexed." noindex>

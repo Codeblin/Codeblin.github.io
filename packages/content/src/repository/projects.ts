@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 
 import { collectHeadings } from '../derive/document.ts';
 import { composeDocument, splitDocument } from '../markdown/frontmatter.ts';
@@ -21,13 +21,16 @@ export function listProjectSlugs(): string[] {
       .filter((entry) => entry.isDirectory() && !entry.name.startsWith('_'))
       .map((entry) => entry.name)
       .filter((name) => SLUG_PATTERN.test(name))
+      .filter((name) => existsSync(documentFile(projectDirectory(name))))
       .sort();
   } catch {
     return [];
   }
 }
 
-export function readProject(slug: string): LoadedProject {
+export function readProject(slug: string, options?: { fresh?: boolean }): LoadedProject {
+  if (options?.fresh) cache.delete(slug);
+
   const directory = projectDirectory(slug);
   const file = documentFile(directory);
   const mtimeMs = statSync(file).mtimeMs;

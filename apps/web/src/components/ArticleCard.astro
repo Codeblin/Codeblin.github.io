@@ -42,6 +42,7 @@ const href = `/research/${post.slug}/`;
           sizes={
             variant === 'feature' ? '(min-width: 62rem) 58rem, 100vw' : '(min-width: 62rem) 28rem, 100vw'
           }
+          fit="cover"
         />
       </div>
     )
@@ -124,6 +125,7 @@ const href = `/research/${post.slug}/`;
 
   .card__cover :global(.frame) {
     border: 0;
+    aspect-ratio: 16 / 9;
   }
 
   .card__body {
@@ -245,17 +247,10 @@ const href = `/research/${post.slug}/`;
   }
 
   .card[data-variant="feature"] .card__cover {
-    position: relative;
     overflow: hidden;
     border-block-end: 0;
     border-inline-end: var(--bw) solid var(--hair);
-    block-size: 100%;
-  }
-
-  .card[data-variant="feature"] .card__cover :global(.frame),
-  .card[data-variant="feature"] .card__cover :global(img) {
-    block-size: 100%;
-    object-fit: cover;
+    align-self: start;
   }
 
   .card[data-variant="feature"] .card__body {

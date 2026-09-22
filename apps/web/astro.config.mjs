@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 
+import { cmsPreview } from './src/integrations/cms-preview.ts';
 import { contentWatcher } from './src/integrations/content-watcher.ts';
 import { site } from './src/site.config.ts';
 
@@ -20,8 +21,9 @@ export default defineConfig({
   },
   prefetch: false,
   integrations: [
+    cmsPreview(),
     sitemap({
-      filter: (page) => !page.includes('/_draft/'),
+      filter: (page) => !page.includes('/preview/') && !page.includes('advisories.json'),
     }),
   ],
   image: {

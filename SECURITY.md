@@ -9,12 +9,17 @@ accidents.
 - **No raw HTML from content.** `remark-rehype` runs with `allowDangerousHtml:
   false`. Directive attributes are zod-validated. `href` values are restricted
   to `https:`, `mailto:`, site-relative paths, and fragments.
-- **No third-party runtime.** No analytics, no font CDN, no embed iframes
-  (YouTube/Gist render as link cards). Self-hosted fonts only. The footer
-  status strip is the one exception: it reads GitHub's public advisories API
-  (no auth, no cookies, `referrerPolicy: no-referrer`) so the strip can show
-  live GHSA/CVE data. Responses are cached in `sessionStorage` for 30 minutes.
-  CSP `connect-src` allows `https://api.github.com` and nothing else off-origin.
+- **No third-party runtime, with two narrow exceptions.** No analytics, no
+  font CDN. Self-hosted fonts only. Gist embeds stay as link cards. YouTube
+  **video** blocks iframe `https://www.youtube-nocookie.com/embed/<id>` so the
+  player sits in the article; CSP `frame-src` allows only that host. Mermaid
+  diagrams load mermaid.js only on pages that contain a diagram block, with
+  `securityLevel: 'strict'` and `htmlLabels: false`; the SVG is sanitised
+  before insert. Server-side Mermaid (jsdom) cannot measure real SVG layout
+  and crops the chart, so the public page uses the same browser renderer as
+  the CMS preview. The footer reads same-origin `/advisories.json`
+  (GitHub is contacted by the build / dev server, never the browser).
+  CSP `connect-src` is `'self'` only.
 - **CSP via meta tag.** GitHub Pages cannot set response headers. A
   `Content-Security-Policy` meta tag is the available control. It is weaker
   than a real header (it cannot restrict `frame-ancestors` or some navigation
@@ -61,5 +66,6 @@ accidents.
 
 - npm workspaces, lockfile committed.
 - CI runs `npm ci`, content validation, tests, and the production build.
-- No `eval`, no `child_process.exec` (string form), no `innerHTML` assignment
-  of author content on the public site.
+- No `eval`, no `child_process.exec` (string form). Author markdown is never
+  assigned to `innerHTML`. Mermaid is compiled to sanitized SVG at build time
+  and inlined; that SVG is generated output, not the author's source.

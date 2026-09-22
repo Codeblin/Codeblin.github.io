@@ -1,9 +1,15 @@
-import { emptyBlock, type Block, type BlockType, type PostFrontmatter } from '@codeblin/content';
+import { emptyBlock, type Block, type BlockType, type PostFrontmatter } from '@codeblin/content/client';
 import { useCallback, useEffect, useRef, useState, type DragEvent, type ReactElement } from 'react';
 
-import { api, type Issue } from '../api.ts';
+import { api, type Issue, type Taxonomy } from '../api.ts';
 import { BlockEditor, InsertPalette } from '../editor/BlockEditor.tsx';
+import { CommaListInput } from '../editor/CommaListInput.tsx';
+import { MediaPicker } from '../editor/MediaPicker.tsx';
+import { PublishBar } from '../editor/PublishBar.tsx';
 import { HistoryStack } from '../editor/history.ts';
+import { issueClass } from '../issues.ts';
+import { previewUrl } from '../preview.ts';
+import { usePublishGate } from '../publishGate.ts';
 
 interface Props {
   slug: string;
@@ -11,8 +17,6 @@ interface Props {
   onToast: (toast: { text: string; fail?: boolean }) => void;
   onSaved: () => void;
 }
-
-const PREVIEW = 'http://127.0.0.1:4321';
 
 export function Editor({ slug, go, onToast, onSaved }: Props): ReactElement {
   const [frontmatter, setFrontmatter] = useState<PostFrontmatter | null>(null);
@@ -24,11 +28,16 @@ export function Editor({ slug, go, onToast, onSaved }: Props): ReactElement {
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [palette, setPalette] = useState(false);
   const [preview, setPreview] = useState(true);
-  const [publishing, setPublishing] = useState(false);
   const [steps, setSteps] = useState<Array<{ id: string; ok: boolean; detail: string }>>([]);
   const [files, setFiles] = useState<string[]>([]);
+  const [previewTick, setPreviewTick] = useState(0);
+  const [taxonomy, setTaxonomy] = useState<Taxonomy | null>(null);
   const history = useRef(new HistoryStack<PostFrontmatter>());
   const debounce = useRef<number>(0);
+  const insertAfter = useRef(0);
+  const draft = useRef({ frontmatter: null as PostFrontmatter | null, blocks: [] as Block[], dirty: false });
+  const saveGen = useRef(0);
+  const { busy: publishing, schedulePublish, runUnpublish } = usePublishGate();
 
   const load = useCallback((): void => {
     void Promise.all([api.post(slug), api.media(slug)])
@@ -44,27 +53,34 @@ export function Editor({ slug, go, onToast, onSaved }: Props): ReactElement {
 
   useEffect(load, [load]);
 
+  useEffect(() => {
+    void api.taxonomy().then(setTaxonomy).catch(() => setTaxonomy(null));
+  }, []);
+
+  draft.current = { frontmatter, blocks, dirty };
+
   const snapshot = (): void => {
     if (frontmatter) history.current.push({ frontmatter, blocks }, true);
   };
 
   const save = useCallback(async (): Promise<void> => {
-    if (!frontmatter) return;
+    const current = draft.current;
+    if (!current.frontmatter) return;
+    const ticket = saveGen.current;
     setSaving(true);
     try {
-      const result = await api.savePost(slug, { frontmatter, blocks });
-      setFrontmatter(result.frontmatter as PostFrontmatter);
-      setBlocks(result.blocks as Block[]);
+      const result = await api.savePost(slug, { frontmatter: current.frontmatter, blocks: current.blocks });
       setIssues(result.issues);
       setSavedAt(result.savedAt);
-      setDirty(false);
+      if (ticket === saveGen.current) setDirty(false);
+      setPreviewTick((tick) => tick + 1);
       onSaved();
     } catch (error) {
       onToast({ text: error instanceof Error ? error.message : 'Save failed', fail: true });
     } finally {
       setSaving(false);
     }
-  }, [frontmatter, blocks, slug, onSaved, onToast]);
+  }, [slug, onSaved, onToast]);
 
   useEffect(() => {
     if (!dirty || !frontmatter) return;
@@ -88,6 +104,7 @@ export function Editor({ slug, go, onToast, onSaved }: Props): ReactElement {
         event.preventDefault();
         const previous = history.current.undo({ frontmatter, blocks });
         if (previous) {
+          saveGen.current += 1;
           setFrontmatter(previous.frontmatter);
           setBlocks(previous.blocks);
           setDirty(true);
@@ -104,6 +121,7 @@ export function Editor({ slug, go, onToast, onSaved }: Props): ReactElement {
 
   const mutateBlocks = (next: Block[]): void => {
     snapshot();
+    saveGen.current += 1;
     setBlocks(next);
     setDirty(true);
   };
@@ -111,41 +129,69 @@ export function Editor({ slug, go, onToast, onSaved }: Props): ReactElement {
   const mutateMeta = (patch: Partial<PostFrontmatter>): void => {
     if (!frontmatter) return;
     snapshot();
+    saveGen.current += 1;
     setFrontmatter({ ...frontmatter, ...patch });
     setDirty(true);
   };
 
   const insert = (type: BlockType): void => {
+    const at = insertAfter.current;
     const next = [...blocks];
-    next.splice(selected + 1, 0, emptyBlock(type));
+    next.splice(at + 1, 0, emptyBlock(type));
     mutateBlocks(next);
-    setSelected(selected + 1);
+    setSelected(at + 1);
+    insertAfter.current = at + 1;
   };
 
-  const publish = async (): Promise<void> => {
-    await save();
-    setPublishing(true);
-    try {
-      const result = await api.publish({ slug, kind: 'posts' });
-      setSteps(result.steps);
-      if (result.ok) onToast({ text: 'Published' });
-      else onToast({ text: result.error ?? 'Publish failed', fail: true });
-      load();
-    } catch (error) {
-      onToast({ text: error instanceof Error ? error.message : 'Publish failed', fail: true });
-    } finally {
-      setPublishing(false);
-    }
+  const publish = async (as: 'live' | 'draft' = 'live'): Promise<void> => {
+    schedulePublish(async () => {
+      try {
+        await save();
+        const result = await api.publish({ slug, kind: 'posts', as });
+        setSteps(result.steps);
+        if (result.skipped) {
+          onToast({
+            text: as === 'draft' ? 'Draft already on origin' : 'Already published — no new commit',
+          });
+        } else if (result.ok) {
+          onToast({ text: as === 'draft' ? 'Draft pushed — it will leave the site' : 'Published' });
+        } else onToast({ text: result.error ?? 'Publish failed', fail: true });
+        load();
+      } catch (error) {
+        onToast({ text: error instanceof Error ? error.message : 'Publish failed', fail: true });
+      }
+    });
   };
 
   const unpublish = async (): Promise<void> => {
-    try {
-      await api.unpublish(slug);
-      onToast({ text: 'Reverted to draft' });
-      load();
-    } catch (error) {
-      onToast({ text: error instanceof Error ? error.message : 'Unpublish failed', fail: true });
-    }
+    runUnpublish(async () => {
+      try {
+        await api.unpublish(slug, 'posts');
+        onToast({ text: 'Unpublished on this machine' });
+        load();
+      } catch (error) {
+        onToast({ text: error instanceof Error ? error.message : 'Unpublish failed', fail: true });
+      }
+    });
+  };
+
+  const publishLocal = async (): Promise<void> => {
+    runUnpublish(async () => {
+      try {
+        await save();
+        await api.publishLocal(slug, 'posts', 'live');
+        onToast({ text: 'Published on this machine' });
+        load();
+      } catch (error) {
+        onToast({ text: error instanceof Error ? error.message : 'Local publish failed', fail: true });
+      }
+    });
+  };
+
+  const onUpload = async (file: File): Promise<string> => {
+    const uploaded = await api.upload(slug, file);
+    setFiles(uploaded.files);
+    return uploaded.src;
   };
 
   const onDrop = async (event: DragEvent): Promise<void> => {
@@ -153,9 +199,8 @@ export function Editor({ slug, go, onToast, onSaved }: Props): ReactElement {
     const file = event.dataTransfer.files[0];
     if (!file) return;
     try {
-      const uploaded = await api.upload(slug, file);
-      setFiles(uploaded.files);
-      onToast({ text: uploaded.src });
+      const src = await onUpload(file);
+      onToast({ text: src });
     } catch (error) {
       onToast({ text: error instanceof Error ? error.message : 'Upload rejected', fail: true });
     }
@@ -163,40 +208,52 @@ export function Editor({ slug, go, onToast, onSaved }: Props): ReactElement {
 
   if (!frontmatter) return <p className="empty">Opening record…</p>;
 
+  const categories = taxonomy?.categories ?? [];
+  const categoryOptions =
+    categories.some((category) => category.slug === frontmatter.category) || !frontmatter.category
+      ? categories
+      : [{ slug: frontmatter.category, name: frontmatter.category }, ...categories];
+
+  const setCoverSrc = (src: string): void => {
+    if (!src) {
+      mutateMeta({ cover: undefined });
+      return;
+    }
+    mutateMeta({
+      cover: {
+        src,
+        alt: frontmatter.cover?.alt || frontmatter.title,
+        duotone: frontmatter.cover?.duotone,
+      },
+    });
+  };
+
   return (
     <div>
-      <div className="form-row" style={{ marginBlockEnd: '1rem' }}>
-        <button type="button" onClick={() => go('/posts')}>
-          ← Posts
-        </button>
-        <span className="stat__k">{dirty ? 'UNSAVED' : saving ? 'SAVING' : savedAt ? 'SAVED' : 'CLEAN'}</span>
-        <button type="button" onClick={() => setPreview((value) => !value)}>
-          {preview ? 'Hide preview' : 'Show preview'}
-        </button>
-        <button type="button" onClick={() => void save()} disabled={saving}>
-          Save
-        </button>
-        {frontmatter.status === 'published' ? (
-          <button type="button" onClick={() => void unpublish()}>
-            Unpublish
+      <PublishBar
+        backLabel="← Posts"
+        onBack={() => go('/posts')}
+        dirty={dirty}
+        saving={saving}
+        savedAt={savedAt}
+        publishing={publishing}
+        isLive={frontmatter.status === 'published'}
+        onSave={() => void save()}
+        onPublishLocal={() => void publishLocal()}
+        onUnpublish={() => void unpublish()}
+        onPushDraft={() => void publish('draft')}
+        onPublish={() => void publish('live')}
+        onDelete={() => {
+          if (window.confirm(`Delete ${slug}?`)) {
+            void api.deletePost(slug).then(() => go('/posts'));
+          }
+        }}
+        extra={
+          <button type="button" onClick={() => setPreview((value) => !value)}>
+            {preview ? 'Hide preview' : 'Show preview'}
           </button>
-        ) : (
-          <button className="primary" type="button" onClick={() => void publish()} disabled={publishing}>
-            Publish
-          </button>
-        )}
-        <button
-          className="danger"
-          type="button"
-          onClick={() => {
-            if (window.confirm(`Delete ${slug}?`)) {
-              void api.deletePost(slug).then(() => go('/posts'));
-            }
-          }}
-        >
-          Delete
-        </button>
-      </div>
+        }
+      />
 
       <div className={`editor${preview ? '' : ' preview-off'}`}>
         <div>
@@ -229,22 +286,23 @@ export function Editor({ slug, go, onToast, onSaved }: Props): ReactElement {
             <div className="form-row">
               <label>
                 Category
-                <input value={frontmatter.category} onChange={(event) => mutateMeta({ category: event.target.value })} />
+                <select
+                  value={frontmatter.category}
+                  onChange={(event) => mutateMeta({ category: event.target.value })}
+                >
+                  {categoryOptions.map((category) => (
+                    <option key={category.slug} value={category.slug}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
               </label>
-              <label>
-                Tags (comma)
-                <input
-                  value={frontmatter.tags.join(', ')}
-                  onChange={(event) =>
-                    mutateMeta({
-                      tags: event.target.value
-                        .split(',')
-                        .map((tag) => tag.trim())
-                        .filter(Boolean),
-                    })
-                  }
-                />
-              </label>
+              <CommaListInput
+                label="Tags"
+                values={frontmatter.tags ?? []}
+                onChange={(tags) => mutateMeta({ tags })}
+                placeholder="android, frida, keystore"
+              />
               <label>
                 Featured
                 <select
@@ -256,6 +314,51 @@ export function Editor({ slug, go, onToast, onSaved }: Props): ReactElement {
                 </select>
               </label>
             </div>
+            <div className="panel" style={{ padding: '0.7rem' }}>
+              <p className="stat__k">Cover</p>
+              <p className="empty" style={{ margin: 0 }}>
+                Ideal size: 2400 × 1350 px (16:9). Larger images are scaled
+                down to the frame; extra edges may be cropped.
+              </p>
+              <MediaPicker
+                files={files}
+                accept="image"
+                value={frontmatter.cover?.src ?? ''}
+                allowEmpty
+                onUpload={onUpload}
+                label="Image"
+                onChange={setCoverSrc}
+              />
+              {frontmatter.cover && (
+                <div className="form-row" style={{ marginBlockStart: '0.6rem' }}>
+                  <label style={{ flex: 1 }}>
+                    Alt text
+                    <input
+                      value={frontmatter.cover.alt}
+                      onChange={(event) =>
+                        mutateMeta({
+                          cover: { ...frontmatter.cover!, alt: event.target.value },
+                        })
+                      }
+                    />
+                  </label>
+                  <label>
+                    Duotone
+                    <select
+                      value={frontmatter.cover.duotone === false ? 'no' : 'yes'}
+                      onChange={(event) =>
+                        mutateMeta({
+                          cover: { ...frontmatter.cover!, duotone: event.target.value === 'yes' },
+                        })
+                      }
+                    >
+                      <option value="yes">Yes</option>
+                      <option value="no">No</option>
+                    </select>
+                  </label>
+                </div>
+              )}
+            </div>
           </div>
 
           <BlockEditor
@@ -263,16 +366,26 @@ export function Editor({ slug, go, onToast, onSaved }: Props): ReactElement {
             selected={selected}
             onSelect={setSelected}
             onChange={mutateBlocks}
-            onSlash={() => setPalette(true)}
+            onSlash={() => {
+              insertAfter.current = selected;
+              setPalette(true);
+            }}
+            onInsertBelow={(index) => {
+              insertAfter.current = index;
+              setSelected(index);
+              setPalette(true);
+            }}
+            media={{ files, onUpload }}
           />
         </div>
 
         {preview && (
           <aside className="meta-grid">
             <iframe
+              key={previewTick}
               className="preview-frame"
               title="Live preview"
-              src={`${PREVIEW}/_draft/posts/${slug}/`}
+              src={previewUrl('posts', slug, previewTick)}
             />
             <div
               className="panel"
@@ -291,7 +404,7 @@ export function Editor({ slug, go, onToast, onSaved }: Props): ReactElement {
                 <p>No issues.</p>
               ) : (
                 issues.map((issue, index) => (
-                  <p key={index} className={issue.level === 'error' ? 'err' : 'warn'}>
+                  <p key={index} className={issueClass(issue.level)}>
                     {issue.message}
                   </p>
                 ))

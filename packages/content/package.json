@@ -5,7 +5,18 @@
   "type": "module",
   "description": "Content schemas, markdown ⇄ block conversion, and the filesystem repository.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./client": {
+      "types": "./src/client.ts",
+      "module": "./src/client.ts",
+      "browser": "./src/client.ts",
+      "development": "./src/client.ts",
+      "import": "./src/client.ts",
+      "default": "./src/client.ts"
+    }
   },
   "dependencies": {
     "@types/mdast": "^4.0.4",

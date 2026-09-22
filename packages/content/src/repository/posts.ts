@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 
 import { deriveDocument } from '../derive/document.ts';
 import { composeDocument, splitDocument } from '../markdown/frontmatter.ts';
@@ -32,10 +32,12 @@ export function listPostSlugs(): string[] {
   } catch {
     return [];
   }
-  return entries.filter((name) => SLUG_PATTERN.test(name)).sort();
+  return entries.filter((name) => SLUG_PATTERN.test(name) && existsSync(documentFile(postDirectory(name)))).sort();
 }
 
-export function readPost(slug: string): LoadedPost {
+export function readPost(slug: string, options?: { fresh?: boolean }): LoadedPost {
+  if (options?.fresh) cache.delete(slug);
+
   const directory = postDirectory(slug);
   const file = documentFile(directory);
   const mtimeMs = statSync(file).mtimeMs;

@@ -2,14 +2,14 @@
  * Footer status strip: a live UTC clock and a moving tape of compact,
  * clickable GitHub security advisories (severity + CVE).
  *
- * The GitHub request is unauthenticated, sends no cookies, and omits the
- * referrer. Results live in sessionStorage for 30 minutes so a session does
- * not burn the unauthenticated rate limit.
+ * Advisories are fetched same-origin from `/advisories.json`, which the
+ * publication server (or the static build) obtained from GitHub. The browser
+ * never talks to api.github.com, so a shared office IP cannot burn the
+ * unauthenticated rate limit.
  */
 
-const ADVISORIES_URL =
-  'https://api.github.com/advisories?per_page=40&type=reviewed';
-const CACHE_KEY = 'cb-ghsa-v2';
+const ADVISORIES_URL = '/advisories.json';
+const CACHE_KEY = 'cb-ghsa-v3';
 const CACHE_MS = 30 * 60 * 1000;
 
 interface Advisory {
@@ -23,15 +23,6 @@ interface Advisory {
 interface CacheEnvelope {
   t: number;
   items: Advisory[];
-}
-
-interface GithubAdvisory {
-  ghsa_id?: string;
-  cve_id?: string | null;
-  html_url?: string;
-  summary?: string;
-  severity?: string | null;
-  withdrawn_at?: string | null;
 }
 
 const reduced = (): boolean =>
@@ -79,37 +70,33 @@ function safeHref(url: string): string | null {
   }
 }
 
-function normalise(payload: GithubAdvisory[]): Advisory[] {
-  const items: Advisory[] = [];
-  for (const entry of payload) {
-    if (entry.withdrawn_at || !entry.summary) continue;
-    const href = entry.html_url ? safeHref(entry.html_url) : null;
+function sanitise(items: unknown): Advisory[] {
+  if (!Array.isArray(items)) return [];
+  const out: Advisory[] = [];
+  for (const entry of items) {
+    if (!entry || typeof entry !== 'object') continue;
+    const row = entry as Partial<Advisory>;
+    if (typeof row.summary !== 'string' || typeof row.severity !== 'string') continue;
+    const href = typeof row.href === 'string' ? safeHref(row.href) : null;
     if (!href) continue;
-    items.push({
-      cve: entry.cve_id ?? '',
-      ghsa: entry.ghsa_id ?? '',
-      severity: (entry.severity ?? 'unknown').toLowerCase(),
-      summary: entry.summary,
+    out.push({
+      cve: typeof row.cve === 'string' ? row.cve : '',
+      ghsa: typeof row.ghsa === 'string' ? row.ghsa : '',
+      severity: row.severity.toLowerCase(),
+      summary: row.summary,
       href,
     });
   }
-  return items;
+  return out;
 }
 
 async function loadAdvisories(): Promise<Advisory[]> {
   const cached = readCache();
   if (cached && cached.length > 0) return cached;
 
-  const response = await fetch(ADVISORIES_URL, {
-    headers: {
-      Accept: 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-    },
-    referrerPolicy: 'no-referrer',
-  });
+  const response = await fetch(ADVISORIES_URL, { cache: 'no-store' });
   if (!response.ok) throw new Error(`ghsa ${response.status}`);
-  const payload = (await response.json()) as GithubAdvisory[];
-  const items = normalise(payload);
+  const items = sanitise(await response.json());
   if (items.length > 0) writeCache(items);
   return items;
 }

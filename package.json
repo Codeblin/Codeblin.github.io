@@ -17,7 +17,7 @@
     "dev:cms": "npm run dev --workspace @codeblin/cms",
     "build": "npm run fonts && npm run grain && npm run build --workspace @codeblin/web",
     "preview": "npm run preview --workspace @codeblin/web",
-    "test": "tsx --test packages/content/test/round-trip.test.ts packages/content/test/rendering.test.ts",
+    "test": "tsx --test packages/content/test/round-trip.test.ts packages/content/test/rendering.test.ts packages/content/test/youtube-mermaid.test.ts",
     "typecheck": "tsc --noEmit -p packages/content && tsc --noEmit -p packages/tokens && tsc --noEmit -p apps/web && tsc --noEmit -p apps/cms",
     "fonts": "node scripts/build-fonts.mjs",
     "grain": "node scripts/build-grain.mjs",

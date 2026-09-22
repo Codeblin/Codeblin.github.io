@@ -21,14 +21,28 @@ export function contentWatcher(): Plugin {
     name: 'codeblin:content-watcher',
     apply: 'serve',
     configureServer(server: ViteDevServer) {
+      server.middlewares.use((req, res, next) => {
+        if ((req.url ?? '').includes('/preview/')) {
+          res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+        }
+        next();
+      });
       server.watcher.add(contentRoot);
       server.watcher.on('all', (_event: string, file: string) => {
-        if (!file.startsWith(contentRoot)) return;
+        const incoming = file.replaceAll('\\', '/').toLowerCase();
+        const root = contentRoot.replaceAll('\\', '/').toLowerCase();
+        if (!incoming.startsWith(root)) return;
         invalidatePostCache();
         invalidateProjectCache();
         invalidatePageCache();
         invalidateTaxonomyCache();
-        server.hot.send({ type: 'full-reload', path: '*' });
+        for (const mod of server.moduleGraph.idToModuleMap.values()) {
+          const id = mod.id ?? '';
+          if (id.includes('preview') || id.includes('@codeblin/content') || id.includes('content/src')) {
+            server.moduleGraph.invalidateModule(mod);
+          }
+        }
+        server.hot.send({ type: 'full-reload' });
       });
     },
   };

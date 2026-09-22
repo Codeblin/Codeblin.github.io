@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState, type ReactElement } from 'react';
+import { useCallback, useEffect, useState, type ReactElement } from 'react';
 
 import { api, type GitState, type Meta } from './api.ts';
 import { Dashboard } from './screens/Dashboard.tsx';
 import { Editor } from './screens/Editor.tsx';
 import { Posts } from './screens/Posts.tsx';
+import { ProjectEditor } from './screens/ProjectEditor.tsx';
 import { Projects } from './screens/Projects.tsx';
 import { Settings } from './screens/Settings.tsx';
 import { Taxonomy } from './screens/Taxonomy.tsx';
@@ -24,10 +25,10 @@ function usePath(): { path: string; go: (to: string) => void } {
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
-  const go = (to: string): void => {
+  const go = useCallback((to: string): void => {
     history.pushState({}, '', to);
     setPath(to);
-  };
+  }, []);
   return { path, go };
 }
 
@@ -37,7 +38,7 @@ export function App(): ReactElement {
   const [git, setGit] = useState<GitState | null>(null);
   const [toast, setToast] = useState<{ text: string; fail?: boolean } | null>(null);
 
-  const refresh = (): void => {
+  const refresh = useCallback((): void => {
     void api
       .meta()
       .then((payload) => {
@@ -47,13 +48,13 @@ export function App(): ReactElement {
       .catch((error: unknown) => {
         setToast({ text: error instanceof Error ? error.message : 'API unreachable', fail: true });
       });
-  };
+  }, []);
 
   useEffect(() => {
     refresh();
     const timer = window.setInterval(refresh, 12_000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [refresh]);
 
   useEffect(() => {
     if (!toast) return;
@@ -61,19 +62,23 @@ export function App(): ReactElement {
     return () => window.clearTimeout(timer);
   }, [toast]);
 
-  const screen = useMemo(() => {
+  const screen = (() => {
     if (path === '/' || path === '') return <Dashboard meta={meta} go={go} />;
     if (path === '/posts') return <Posts go={go} filter="all" onToast={setToast} />;
     if (path === '/drafts') return <Posts go={go} filter="draft" onToast={setToast} />;
     if (path.startsWith('/posts/')) {
       const slug = decodeURIComponent(path.slice('/posts/'.length).replace(/\/$/, ''));
-      return <Editor slug={slug} go={go} onToast={setToast} onSaved={refresh} />;
+      return <Editor key={slug} slug={slug} go={go} onToast={setToast} onSaved={refresh} />;
     }
-    if (path === '/projects') return <Projects onToast={setToast} />;
+    if (path === '/projects') return <Projects go={go} onToast={setToast} />;
+    if (path.startsWith('/projects/')) {
+      const slug = decodeURIComponent(path.slice('/projects/'.length).replace(/\/$/, ''));
+      return <ProjectEditor key={slug} slug={slug} go={go} onToast={setToast} onSaved={refresh} />;
+    }
     if (path === '/taxonomy') return <Taxonomy onToast={setToast} />;
     if (path === '/settings') return <Settings meta={meta} onToast={setToast} />;
     return <p className="empty">Unknown route.</p>;
-  }, [path, meta, go]);
+  })();
 
   const title = NAV.find((item) => item.href !== '/' && path.startsWith(item.href))?.label ?? 'Dashboard';
 

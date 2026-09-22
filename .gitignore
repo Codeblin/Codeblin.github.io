@@ -17,3 +17,6 @@ apps/*/public/fonts/
 Thumbs.db
 *.log
 npm-debug.log*
+
+# Local CMS journal — never part of a publish commit
+.cms/

@@ -23,16 +23,19 @@ export function nextProjectRecord(): number {
 export function createProject(input: CreateProjectInput): { slug: string; record: number } {
   const base = input.slug ?? slugify(input.name);
   if (!SLUG_PATTERN.test(base)) throw new Error(`Slug "${base}" is not a valid slug.`);
-  if (existsSync(projectDirectory(base))) throw new Error(`Project ${base} already exists.`);
-
   const directory = projectDirectory(base);
+  if (existsSync(documentFile(directory))) throw new Error(`Project ${base} already exists.`);
+
+  // Record number first — listing projects after mkdir would try to read this
+  // slug's index.md before it exists.
+  const record = nextProjectRecord();
   mkdirSync(mediaDirectory(directory), { recursive: true });
 
   const now = new Date();
   const startedAt = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
   const frontmatter: ProjectFrontmatter = {
-    record: nextProjectRecord(),
+    record,
     name: input.name,
     tagline: input.tagline,
     status: 'research',

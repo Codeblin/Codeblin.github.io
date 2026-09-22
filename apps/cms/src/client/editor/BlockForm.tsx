@@ -1,12 +1,27 @@
-import type { Block } from '@codeblin/content';
+import {
+  parseYoutubeRef,
+  youtubeSrc,
+  youtubeWatchUrl,
+  type Block,
+} from '@codeblin/content/client';
+import { useState, type ReactElement } from 'react';
+
+import { MediaPicker } from './MediaPicker.tsx';
+import { MermaidPreview } from './MermaidPreview.tsx';
+
+export interface MediaContext {
+  files: string[];
+  onUpload?: (file: File) => Promise<string>;
+}
 
 interface Props {
   block: Block;
   onChange: (block: Block) => void;
   onSlash?: () => void;
+  media?: MediaContext;
 }
 
-export function BlockForm({ block, onChange, onSlash }: Props): React.ReactElement {
+export function BlockForm({ block, onChange, onSlash, media }: Props): ReactElement {
   switch (block.type) {
     case 'prose':
       return (
@@ -213,12 +228,26 @@ export function BlockForm({ block, onChange, onSlash }: Props): React.ReactEleme
       );
     case 'diagram':
       return (
-        <textarea
-          rows={6}
-          spellCheck={false}
-          value={block.source}
-          onChange={(event) => onChange({ ...block, source: event.target.value })}
-        />
+        <div className="meta-grid">
+          <label>
+            Mermaid
+            <textarea
+              rows={8}
+              spellCheck={false}
+              value={block.source}
+              onChange={(event) => onChange({ ...block, source: event.target.value })}
+              placeholder={'flowchart LR\n  A --> B'}
+            />
+          </label>
+          <label>
+            Caption
+            <input
+              value={block.caption ?? ''}
+              onChange={(event) => onChange({ ...block, caption: event.target.value || undefined })}
+            />
+          </label>
+          <MermaidPreview source={block.source} />
+        </div>
       );
     case 'divider':
       return (
@@ -234,10 +263,14 @@ export function BlockForm({ block, onChange, onSlash }: Props): React.ReactEleme
     case 'image':
       return (
         <div className="meta-grid">
-          <label>
-            Src
-            <input value={block.src} onChange={(event) => onChange({ ...block, src: event.target.value })} />
-          </label>
+          <MediaPicker
+            files={media?.files ?? []}
+            accept="image"
+            value={block.src}
+            onChange={(src) => onChange({ ...block, src })}
+            onUpload={media?.onUpload}
+            label="Image"
+          />
           <label>
             Alt
             <input value={block.alt} onChange={(event) => onChange({ ...block, alt: event.target.value })} />
@@ -346,17 +379,220 @@ export function BlockForm({ block, onChange, onSlash }: Props): React.ReactEleme
         </div>
       );
     case 'gallery':
-    case 'embed':
-    case 'video':
       return (
-        <p className="empty">
-          {block.type} — edit the markdown source if you need fields beyond the defaults. Drop images onto the
-          metadata panel to upload.
-        </p>
+        <GalleryForm block={block} onChange={onChange} media={media} />
       );
+    case 'embed':
+      return (
+        <div className="meta-grid">
+          <label>
+            Provider
+            <select
+              value={block.provider}
+              onChange={(event) =>
+                onChange({ ...block, provider: event.target.value as typeof block.provider })
+              }
+            >
+              <option value="youtube">youtube</option>
+              <option value="gist">gist</option>
+            </select>
+          </label>
+          <label>
+            {block.provider === 'youtube' ? 'YouTube URL or id' : 'Gist ref'}
+            <input
+              value={block.ref}
+              onChange={(event) => {
+                const raw = event.target.value;
+                if (block.provider === 'youtube') {
+                  const id = parseYoutubeRef(raw);
+                  onChange({ ...block, ref: id ?? raw });
+                  return;
+                }
+                onChange({ ...block, ref: raw });
+              }}
+            />
+          </label>
+          <label>
+            Title
+            <input
+              value={block.title ?? ''}
+              onChange={(event) => onChange({ ...block, title: event.target.value || undefined })}
+            />
+          </label>
+        </div>
+      );
+    case 'video':
+      return <VideoForm block={block} onChange={onChange} media={media} />;
     default: {
       const exhaustive: never = block;
       return <p>{String(exhaustive)}</p>;
     }
   }
+}
+
+function VideoForm({
+  block,
+  onChange,
+  media,
+}: {
+  block: Extract<Block, { type: 'video' }>;
+  onChange: (block: Block) => void;
+  media?: MediaContext;
+}): ReactElement {
+  const youtubeId = parseYoutubeRef(block.src);
+  const [mode, setMode] = useState<'file' | 'youtube'>(youtubeId ? 'youtube' : 'file');
+  const [url, setUrl] = useState(youtubeId ? youtubeWatchUrl(youtubeId) : '');
+
+  return (
+    <div className="meta-grid">
+      <label>
+        Source
+        <select
+          value={mode}
+          onChange={(event) => {
+            const next = event.target.value;
+            if (next === 'youtube') {
+              setMode('youtube');
+              const id = parseYoutubeRef(url) ?? parseYoutubeRef(block.src);
+              setUrl(id ? youtubeWatchUrl(id) : '');
+              if (id) onChange({ ...block, src: youtubeSrc(id), poster: undefined });
+              return;
+            }
+            setMode('file');
+            const mp4 = (media?.files ?? []).find((file) => /\.mp4$/i.test(file));
+            onChange({ ...block, src: mp4 ? `./media/${mp4}` : './media/capture.mp4' });
+          }}
+        >
+          <option value="file">Uploaded file</option>
+          <option value="youtube">YouTube URL</option>
+        </select>
+      </label>
+      {mode === 'file' ? (
+        <>
+          <MediaPicker
+            files={media?.files ?? []}
+            accept="video"
+            value={block.src}
+            onChange={(src) => onChange({ ...block, src })}
+            onUpload={media?.onUpload}
+            label="Video"
+          />
+          <MediaPicker
+            files={media?.files ?? []}
+            accept="image"
+            value={block.poster ?? ''}
+            onChange={(src) => onChange({ ...block, poster: src || undefined })}
+            onUpload={media?.onUpload}
+            label="Poster"
+            allowEmpty
+          />
+        </>
+      ) : (
+        <label>
+          YouTube URL
+          <input
+            value={url}
+            placeholder="https://www.youtube.com/watch?v=…"
+            onChange={(event) => {
+              const next = event.target.value;
+              setUrl(next);
+              const id = parseYoutubeRef(next);
+              if (id) onChange({ ...block, src: youtubeSrc(id), poster: undefined });
+            }}
+          />
+        </label>
+      )}
+      <label>
+        Caption
+        <input
+          value={block.caption ?? ''}
+          onChange={(event) => onChange({ ...block, caption: event.target.value || undefined })}
+        />
+      </label>
+    </div>
+  );
+}
+
+function GalleryForm({
+  block,
+  onChange,
+  media,
+}: {
+  block: Extract<Block, { type: 'gallery' }>;
+  onChange: (block: Block) => void;
+  media?: MediaContext;
+}): ReactElement {
+  const updateItem = (index: number, patch: Partial<(typeof block.items)[number]>): void => {
+    const items = block.items.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item));
+    onChange({ ...block, items });
+  };
+
+  return (
+    <div className="meta-grid">
+      <label>
+        Columns
+        <select
+          value={block.columns}
+          onChange={(event) => onChange({ ...block, columns: Number(event.target.value) as 2 | 3 })}
+        >
+          <option value={2}>2</option>
+          <option value={3}>3</option>
+        </select>
+      </label>
+      {block.items.map((item, index) => (
+        <div key={`${item.src}-${index}`} className="panel meta-grid">
+          <MediaPicker
+            files={media?.files ?? []}
+            accept="image"
+            value={item.src}
+            onChange={(src) => updateItem(index, { src })}
+            onUpload={media?.onUpload}
+            label={`Image ${index + 1}`}
+          />
+          <label>
+            Alt
+            <input value={item.alt} onChange={(event) => updateItem(index, { alt: event.target.value })} />
+          </label>
+          <label>
+            Caption
+            <input
+              value={item.caption ?? ''}
+              onChange={(event) => updateItem(index, { caption: event.target.value || undefined })}
+            />
+          </label>
+          {block.items.length > 2 && (
+            <button
+              type="button"
+              className="danger"
+              onClick={(event) => {
+                event.stopPropagation();
+                onChange({ ...block, items: block.items.filter((_, itemIndex) => itemIndex !== index) });
+              }}
+            >
+              Remove
+            </button>
+          )}
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          const fallback = media?.files.find((file) => /\.(png|jpe?g|webp|gif|avif)$/i.test(file));
+          onChange({
+            ...block,
+            items: [
+              ...block.items,
+              {
+                src: fallback ? `./media/${fallback}` : './media/placeholder.png',
+                alt: 'Replace this image',
+              },
+            ],
+          });
+        }}
+      >
+        Add image
+      </button>
+    </div>
+  );
 }

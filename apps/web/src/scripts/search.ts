@@ -19,7 +19,7 @@ let loading: Promise<SearchIndex> | null = null;
 
 function loadIndex(): Promise<SearchIndex> {
   if (index) return Promise.resolve(index);
-  loading ??= fetch(INDEX_URL)
+  loading ??= fetch(INDEX_URL, { cache: 'no-store' })
     .then((response) => {
       if (!response.ok) throw new Error(`search index ${response.status}`);
       return response.json() as Promise<SearchIndex>;

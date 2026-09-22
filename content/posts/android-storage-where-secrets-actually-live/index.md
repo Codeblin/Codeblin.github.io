@@ -1,11 +1,11 @@
 ---
 record: 4
 title: Where Android Secrets Actually Live
-subtitle: Part one — mapping every place an application can put sensitive data, and which of them survive filesystem access
-excerpt: >-
-  Before deciding whether an app protects its secrets, you have to know where
-  it keeps them. This is a complete map of Android storage locations, ranked by
-  what an attacker with filesystem access can read.
+subtitle: Part one — mapping every place an application can put sensitive data, and
+  which of them survive filesystem access
+excerpt: Before deciding whether an app protects its secrets, you have to know where it
+  keeps them. This is a complete map of Android storage locations, ranked by what an
+  attacker with filesystem access can read.
 status: published
 publishedAt: 2025-07-08
 category: mobile-security
@@ -13,6 +13,9 @@ tags:
   - android
   - masvs
   - static-analysis
+cover:
+  src: ./media/2def7071cf45575ed85072b54f361517.jpg
+  alt: Where Android Secrets Actually Live
 series:
   id: android-storage
   order: 1

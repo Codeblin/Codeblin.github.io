@@ -9,6 +9,14 @@ interface Props {
 const { block } = Astro.props;
 const sourceId = `terminal-${block.id}`;
 const failed = block.exitCode !== undefined && block.exitCode !== 0;
+
+const plain = block.lines
+  .map((line) => {
+    if (line.kind === 'prompt') return `$ ${line.text}`;
+    if (line.kind === 'comment') return `# ${line.text}`;
+    return line.text;
+  })
+  .join('\n');
 ---
 
 <figure class="terminal notched" data-failed={failed ? '' : undefined}>
@@ -23,22 +31,32 @@ const failed = block.exitCode !== undefined && block.exitCode !== 0;
     <CopyButton target={sourceId} label="Copy transcript" />
   </div>
 
-  <pre class="terminal__body" id={sourceId} tabindex="0"><code>{
-    block.lines.map((line) => (
-      <span class="terminal__line" data-kind={line.kind}>
-        {line.kind === 'prompt' && <span class="terminal__prompt" aria-hidden="true">$ </span>}
-        {line.kind === 'comment' && <span class="terminal__hash" aria-hidden="true"># </span>}
-        {line.text}
-        {'\n'}
-      </span>
-    ))
-  }</code></pre>
+  <pre class="visually-hidden" id={sourceId}>{plain}</pre>
+
+  <div class="terminal__body" tabindex="0">
+    {
+      block.lines.map((line) => (
+        <div class="terminal__line" data-kind={line.kind}>
+          {line.kind === 'prompt' && (
+            <span class="terminal__prompt" aria-hidden="true">$</span>
+          )}
+          {line.kind === 'comment' && (
+            <span class="terminal__hash" aria-hidden="true">#</span>
+          )}
+          <span class="terminal__text">{line.text}</span>
+        </div>
+      ))
+    }
+  </div>
 </figure>
 
 <style>
   /*
    * Chamfered, because a terminal is machinery. No typing animation: the
    * transcript is evidence, and evidence does not perform.
+   *
+   * Lines are divs, not a pretty-printed map inside <pre>. Astro's source
+   * indentation was being preserved as blank lines and leading spaces.
    */
   .terminal {
     border: var(--bw) solid var(--hair);
@@ -82,8 +100,9 @@ const failed = block.exitCode !== undefined && block.exitCode !== 0;
 
   .terminal__body {
     margin: 0;
-    padding: var(--s-4);
+    padding: var(--s-3) var(--s-4);
     overflow-x: auto;
+    font-family: var(--font-code);
     font-size: var(--fs-code);
     line-height: var(--lh-code);
     scrollbar-color: var(--hair-lit) transparent;
@@ -91,7 +110,13 @@ const failed = block.exitCode !== undefined && block.exitCode !== 0;
   }
 
   .terminal__line {
-    display: block;
+    display: flex;
+    align-items: baseline;
+    gap: 0.6ch;
+    min-block-size: 1.62em;
+  }
+
+  .terminal__text {
     white-space: pre;
   }
 
@@ -109,10 +134,12 @@ const failed = block.exitCode !== undefined && block.exitCode !== 0;
   }
 
   .terminal__prompt {
+    flex-shrink: 0;
     color: var(--sulfur);
   }
 
   .terminal__hash {
+    flex-shrink: 0;
     color: var(--ghost);
   }
 
