@@ -3,7 +3,8 @@ record: 9
 title: Test post
 subtitle: Subtitle
 excerpt: Excert
-status: draft
+status: published
+publishedAt: 2026-09-22
 updatedAt: 2026-09-22
 category: appsec
 tags:
