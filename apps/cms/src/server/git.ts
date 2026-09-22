@@ -113,6 +113,22 @@ export async function stageRecord(kind: 'posts' | 'projects', slug: string): Pro
   return relative;
 }
 
+/** Stage the whole content tree, including deletions. Never apps/ or packages/. */
+export async function stageContent(): Promise<string> {
+  await git(['add', '-A', '--', 'content']);
+  return 'content';
+}
+
+export function contentDirtyPaths(dirty: readonly string[]): string[] {
+  return dirty.filter((entry) => {
+    const path = entry.split('\\').join('/');
+    if (path.includes(' -> ')) {
+      return path.split(' -> ').some((part) => part.trim().startsWith('content/'));
+    }
+    return path.startsWith('content/');
+  });
+}
+
 export async function hasStagedChanges(path?: string): Promise<boolean> {
   const args = ['diff', '--cached', '--quiet'];
   if (path) args.push('--', path);
@@ -163,4 +179,11 @@ export function publishCommitMessage(
     as === 'draft' ? (kind === 'posts' ? 'Draft' : 'Unpublish project') : kind === 'posts' ? 'Publish' : 'Publish project';
   const raw = `${prefix} ${title}`.replace(/\s+/g, ' ').trim();
   return raw.length <= 72 ? raw : `${raw.slice(0, 69)}...`;
+}
+
+export function sitePublishMessage(paths: readonly string[]): string {
+  if (paths.length === 0) return 'Publish all content changes';
+  const unique = [...new Set(paths.map((path) => path.replace(/\\/g, '/')))];
+  const raw = unique.length === 1 ? `Publish ${unique[0]}` : `Publish ${unique.length} content changes`;
+  return raw.length <= 72 ? raw : 'Publish all content changes';
 }

@@ -63,6 +63,8 @@ export const api = {
   git: () => request<GitPayload>('/api/git'),
   publish: (body: { slug: string; kind?: 'posts' | 'projects'; as?: 'live' | 'draft'; message?: string }) =>
     request<PublishResult>('/api/git/publish', { method: 'POST', body: JSON.stringify(body) }),
+  publishAll: (body?: { message?: string }) =>
+    request<PublishResult>('/api/git/publish-all', { method: 'POST', body: JSON.stringify(body ?? {}) }),
   publishLocal: (slug: string, kind: 'posts' | 'projects' = 'posts', as: 'live' | 'draft' = 'live') =>
     request<{ ok: boolean; status: string }>('/api/git/local', {
       method: 'POST',

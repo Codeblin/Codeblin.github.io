@@ -116,16 +116,22 @@ const href = `/research/${post.slug}/`;
     position: absolute;
     inset: 0;
     z-index: 1;
+    grid-column: 1 / -1;
+    grid-row: 1 / -1;
   }
 
   .card__cover {
     position: relative;
+    overflow: hidden;
     border-block-end: var(--bw) solid var(--hair);
+    min-inline-size: 0;
+    min-block-size: 0;
   }
 
   .card__cover :global(.frame) {
     border: 0;
     aspect-ratio: 16 / 9;
+    overflow: hidden;
   }
 
   .card__body {
@@ -244,32 +250,66 @@ const href = `/research/${post.slug}/`;
   .card[data-variant="feature"][data-cover] {
     display: grid;
     grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    grid-template-rows: minmax(16rem, 22rem);
+    align-items: stretch;
   }
 
   .card[data-variant="feature"] .card__cover {
     overflow: hidden;
     border-block-end: 0;
     border-inline-end: var(--bw) solid var(--hair);
-    align-self: start;
+    min-block-size: 0;
+  }
+
+  .card[data-variant="feature"] .card__cover :global(.frame) {
+    inline-size: 100%;
+    block-size: 100%;
+    aspect-ratio: auto;
   }
 
   .card[data-variant="feature"] .card__body {
     padding: var(--s-8);
     gap: var(--s-4);
+    min-block-size: 0;
+    overflow: hidden;
   }
 
   .card[data-variant="feature"] .card__title {
     font-size: var(--fs-display-3);
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+
+  .card[data-variant="feature"] .card__subtitle {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+
+  .card[data-variant="feature"] .card__excerpt {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
   }
 
   @media (width < 62rem) {
-    .card[data-variant="feature"] {
+    .card[data-variant="feature"][data-cover] {
       grid-template-columns: 1fr;
+      grid-template-rows: auto auto;
     }
 
     .card[data-variant="feature"] .card__cover {
       border-inline-end: 0;
       border-block-end: var(--bw) solid var(--hair);
+    }
+
+    .card[data-variant="feature"] .card__cover :global(.frame) {
+      aspect-ratio: 16 / 9;
+      block-size: auto;
     }
 
     .card[data-variant="feature"] .card__body {

@@ -16,12 +16,15 @@ import {
 
 import {
   commit,
+  contentDirtyPaths,
   hasStagedChanges,
   publishCommitMessage,
   push,
   readGitState,
   readRecentCommits,
+  sitePublishMessage,
   stage,
+  stageContent,
   stageRecord,
   withGitLock,
 } from '../git.ts';
@@ -159,6 +162,63 @@ git.post('/publish', async (context) => {
       mark('push', true, as === 'draft' ? 'Draft on origin' : 'Published');
 
       return context.json({ ok: true, as, steps, git: await readGitState() });
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : 'Unknown failure';
+      const last = steps.at(-1)?.id ?? 'start';
+      mark('failed', false, `${last}: ${detail}`);
+      return context.json({ ok: false, steps, error: detail }, 500);
+    }
+  });
+});
+
+const publishAllSchema = z.object({
+  message: z.string().min(3).max(72).optional(),
+});
+
+/**
+ * Commit and push every change under `content/` — edits, taxonomy, and
+ * deletions. Per-record publish cannot stage a removed directory.
+ */
+git.post('/publish-all', async (context) => {
+  const body = publishAllSchema.parse(await context.req.json());
+  return withGitLock(async () => {
+    const steps: Array<{ id: string; ok: boolean; detail: string }> = [];
+    const mark = (id: string, ok: boolean, detail: string): void => {
+      steps.push({ id, ok, detail });
+    };
+
+    try {
+      const corpus = validateCorpus(listPosts(), listProjects());
+      if (corpus.errorCount > 0) {
+        mark('validate', false, `${corpus.errorCount} published-record errors`);
+        return context.json({ ok: false, steps, error: `${corpus.errorCount} published-record errors` }, 400);
+      }
+      mark('validate', true, 'Published content validated');
+
+      const before = await readGitState();
+      const pending = contentDirtyPaths(before.dirty);
+      const scoped = await stageContent();
+      mark('stage', true, scoped);
+
+      const staged = await hasStagedChanges(scoped);
+      if (!staged && before.ahead === 0) {
+        mark('commit', true, 'No content changes — commit skipped');
+        mark('push', true, 'Already up to date');
+        return context.json({ ok: true, skipped: true, steps, git: await readGitState() });
+      }
+
+      if (staged) {
+        const message = body.message ?? sitePublishMessage(pending);
+        const hash = await commit(message, [scoped]);
+        mark('commit', true, hash);
+      } else {
+        mark('commit', true, 'No new content — pushing existing commits');
+      }
+
+      await push();
+      mark('push', true, pending.length ? `Published ${pending.length} content paths` : 'Pushed');
+
+      return context.json({ ok: true, steps, git: await readGitState() });
     } catch (error) {
       const detail = error instanceof Error ? error.message : 'Unknown failure';
       const last = steps.at(-1)?.id ?? 'start';

@@ -55,6 +55,10 @@ export function assertLocalRequest(context: Context): void {
     throw new HTTPException(403, { message: 'Cross-site request blocked.' });
   }
 
+  // DELETE has no body. Forms cannot send DELETE, so the JSON/multipart
+  // CSRF check does not apply; Origin and Sec-Fetch-Site still do.
+  if (context.req.method === 'DELETE') return;
+
   const type = context.req.header('content-type') ?? '';
   const isMultipart = type.startsWith('multipart/form-data');
   const isJson = type.startsWith('application/json');

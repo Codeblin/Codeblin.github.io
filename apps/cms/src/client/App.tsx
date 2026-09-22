@@ -50,6 +50,31 @@ export function App(): ReactElement {
       });
   }, []);
 
+  const [publishingAll, setPublishingAll] = useState(false);
+  const contentDirty = git?.dirty.filter((path) => path.replace(/\\/g, '/').includes('content/')).length ?? 0;
+  const canPublishAll = contentDirty > 0 || (git?.ahead ?? 0) > 0;
+
+  const publishAll = async (): Promise<void> => {
+    if (publishingAll || !canPublishAll) return;
+    const summary =
+      contentDirty > 0
+        ? `Commit and push ${contentDirty} content change${contentDirty === 1 ? '' : 's'} to GitHub? Includes deletions.`
+        : `Push ${git?.ahead ?? 0} unpushed commit${git?.ahead === 1 ? '' : 's'} to GitHub?`;
+    if (!window.confirm(summary)) return;
+    setPublishingAll(true);
+    try {
+      const result = await api.publishAll();
+      if (!result.ok) setToast({ text: result.error ?? 'Publish all failed', fail: true });
+      else if (result.skipped) setToast({ text: 'Nothing to publish' });
+      else setToast({ text: 'All content changes published' });
+      refresh();
+    } catch (error) {
+      setToast({ text: error instanceof Error ? error.message : 'Publish all failed', fail: true });
+    } finally {
+      setPublishingAll(false);
+    }
+  };
+
   useEffect(() => {
     refresh();
     const timer = window.setInterval(refresh, 12_000);
@@ -76,7 +101,17 @@ export function App(): ReactElement {
       return <ProjectEditor key={slug} slug={slug} go={go} onToast={setToast} onSaved={refresh} />;
     }
     if (path === '/taxonomy') return <Taxonomy onToast={setToast} />;
-    if (path === '/settings') return <Settings meta={meta} onToast={setToast} />;
+    if (path === '/settings') {
+      return (
+        <Settings
+          meta={meta}
+          onToast={setToast}
+          publishingAll={publishingAll}
+          canPublishAll={canPublishAll}
+          onPublishAll={() => void publishAll()}
+        />
+      );
+    }
     return <p className="empty">Unknown route.</p>;
   })();
 
@@ -109,6 +144,15 @@ export function App(): ReactElement {
 
       <header className="topbar">
         <p className="topbar__title">{title}</p>
+        <button
+          type="button"
+          className="primary"
+          disabled={!canPublishAll || publishingAll}
+          title="Commit and push every content change, including deletions. Per-post publish cannot send a deleted record."
+          onClick={() => void publishAll()}
+        >
+          {publishingAll ? 'Publishing…' : contentDirty > 0 ? `Publish all (${contentDirty})` : 'Publish all'}
+        </button>
         <button type="button" onClick={refresh}>
           Refresh
         </button>
@@ -122,6 +166,7 @@ export function App(): ReactElement {
         </span>
         <span>
           dirty <strong>{git?.dirty.length ?? '—'}</strong>
+          {contentDirty ? ` · content ${contentDirty}` : ''}
         </span>
         <span>
           {git?.ahead ? `ahead ${git.ahead}` : git?.behind ? `behind ${git.behind}` : 'in sync'}
